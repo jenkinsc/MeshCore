@@ -23,7 +23,7 @@ on:
 jobs:
   host-tests:
     name: Parser / driver host tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - name: Install googletest
@@ -45,7 +45,7 @@ jobs:
   firmware:
     name: Build ${{ matrix.environment }}
     needs: host-tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -59,7 +59,7 @@ jobs:
         run: pio run -e ${{ matrix.environment }}
       - name: Upload firmware
         if: matrix.environment == 'RAK_4631_repeater_RAK9154'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: RAK_4631_repeater_RAK9154-firmware
           path: |
