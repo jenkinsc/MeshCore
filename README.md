@@ -78,6 +78,26 @@ The repeater and room server firmware can be set up via USB in the web config to
 
 They can also be managed via LoRa in the mobile app by using the Remote Management feature.
 
+## 🔋 Fork addition: RAK9154 battery telemetry (RAK4631 repeater)
+
+**Why:** a WisMesh RAK4631 repeater powered by a RAK9154 Solar Battery reports `0.0 V` in MeshCore's battery
+telemetry, because the battery is not wired to the board's ADC. The RAK9154 publishes its real battery data on
+"Output 1" using RAK's SensorHub one-wire protocol (9600 8N1, half duplex, not Modbus).
+
+**What was added** (all behind `-D RAK9154_BATTERY`; nothing else in MeshCore or its protocol changed):
+- A new build target, `RAK_4631_repeater_RAK9154`, which extends `RAK_4631_repeater`. The stock target is untouched.
+- A small driver in `variants/rak4631/rak9154/` (protocol parser, cached telemetry service, bit-banged one-wire
+  transport). It polls the battery about every 30 s and caches the result, so `getBattMilliVolts()` stays instant and
+  never does serial I/O. If there is no fresh reading it falls back to the stock method.
+- A `rak9154` CLI command (`status`, `poll`, `info`, `raw`) with diagnostic counters.
+- Host unit tests (`test/test_rak9154/`) and a GitHub Actions workflow that builds both targets and uploads the custom
+  firmware as an artifact.
+
+**Status:** Phase 1 (battery voltage) is implemented and unit-tested, but **not yet verified on hardware**. The GPIO
+pin and 16-bit byte order are unverified and must be checked on the bench before use. See
+[docs/RAK9154.md](docs/RAK9154.md) for pin checklist, flags, CLI and upstream-sync steps, and
+[docs/RAK9154-IMPLEMENTATION-PLAN.md](docs/RAK9154-IMPLEMENTATION-PLAN.md) for the design.
+
 ## 🛠 Hardware Compatibility
 
 MeshCore is designed for devices listed in the [MeshCore Flasher](https://meshcore.io/flasher)
