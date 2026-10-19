@@ -3,6 +3,7 @@
 #include "nrf_gpio.h"
 
 #include "RAK4631Board.h"
+#include <string.h>
 
 #ifdef ETHERNET_ENABLED
 // Drive WB_IO2 HIGH as early as possible using direct register access.
@@ -64,4 +65,32 @@ void RAK4631Board::begin() {
 #endif
   digitalWrite(SX126X_POWER_EN, HIGH);
   delay(10);   // give sx1262 some time to power up
+
+#ifdef RAK9154_BATTERY
+  rak9154.begin();   // returns false (driver stays inert, stock ADC used) if the pin/interrupt can't be claimed
+#endif
 }
+
+#ifdef RAK9154_BATTERY
+// CLI: "rak9154" / "rak9154 status" | "poll" | "info" | "raw". Reply buffers are 160 bytes; stay below.
+bool RAK4631Board::handleCommand(const char* command, uint32_t /*sender_timestamp*/, char* reply) {
+  if (strncmp(command, "rak9154", 7) != 0 || (command[7] != 0 && command[7] != ' ')) return false;
+  const char* arg = command + 7;
+  while (*arg == ' ') arg++;
+  constexpr size_t REPLY_MAX = 150;
+
+  if (*arg == 0 || strcmp(arg, "status") == 0) {
+    rak9154.formatStatus(reply, REPLY_MAX);
+  } else if (strcmp(arg, "poll") == 0) {
+    rak9154.requestPollNow();
+    strcpy(reply, "RAK9154 poll requested");
+  } else if (strcmp(arg, "info") == 0) {
+    rak9154.formatInfo(reply, REPLY_MAX);
+  } else if (strcmp(arg, "raw") == 0) {
+    rak9154.formatRaw(reply, REPLY_MAX);
+  } else {
+    strcpy(reply, "usage: rak9154 [status|poll|info|raw]");
+  }
+  return true;
+}
+#endif
