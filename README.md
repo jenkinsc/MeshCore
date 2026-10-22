@@ -136,6 +136,7 @@ hardware 0x44, firmware 1.2.9):
 - Console showed `V:12.31V I:41mA SOC:99% T:21.0C ok:15 to:0 cs:0 inv:0` (valid frames, no timeouts, no checksum errors), and
   the app's Telemetry screen showed the battery on channel 1.
 - The voltage matches a multimeter reading at the battery.
+- The fault byte appears on channel 2 next to the battery temperature as a digital input (0 = no faults), on the build from release `rak9154-repeater-v1.18.0-a3de8024`.
 - The app's Telemetry screen shows battery %, voltage, charge current, state of charge (%) on channel 1 and the battery
   temperature on channel 2 (for example `100% / 12.43v`, `0.000A`, `100%`, `36.5C`).
 - `rak9154 extra` returned `ch19=0000 (faults:none)` and `ch1A=0004 (fw:V00.04)` from the real probe, so the `0xF3` words
