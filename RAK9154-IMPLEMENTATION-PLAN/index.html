@@ -1,0 +1,1332 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the open source MeshCore firmware">
+      
+      
+      
+        <link rel="canonical" href="https://meshcore-dev.github.io/meshcore/RAK9154-IMPLEMENTATION-PLAN/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../RAK9154/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>RAK9154 Battery Telemetry — Implementation Plan - MeshCore Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#rak9154-battery-telemetry-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MeshCore Docs" class="md-header__button md-logo" aria-label="MeshCore Docs" data-md-component="logo">
+      
+  <img src="../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              RAK9154 Battery Telemetry — Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/meshcore-dev/meshcore/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    meshcore-dev/meshcore
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MeshCore Docs" class="md-nav__button md-logo" aria-label="MeshCore Docs" data-md-component="logo">
+      
+  <img src="../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/meshcore-dev/meshcore/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    meshcore-dev/meshcore
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAK9154 Battery Telemetry — Implementation Plan
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAK9154 Battery Telemetry — Implementation Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-upstream-meshcore-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Upstream MeshCore commit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-rak4631-board-class-and-relevant-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. RAK4631 board class and relevant files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-current-getbattmillivolts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Current getBattMilliVolts()
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-telemetry-call-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Telemetry call path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-architecture-facts-that-constrain-the-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Architecture facts that constrain the design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-rak9154-meshtastic-implementation-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. RAK9154 — Meshtastic implementation findings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-rak-onewireserial-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. RAK-OneWireSerial findings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-exact-protocol-frame-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Exact protocol / frame information
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-licensing-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Licensing assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-gpio-interface-mapping-unverified-configurable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. GPIO / interface mapping (UNVERIFIED — configurable)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-proposed-source-files-and-platformio-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Proposed source files and PlatformIO changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-polling-state-machine-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Polling / state-machine design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-risks-and-unresolved-hardware-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Risks and unresolved hardware questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RAK9154/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAK9154 Solar Battery telemetry (RAK4631 repeater)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../companion_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Companion Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frequently Asked Questions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kiss_modem_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MeshCore KISS Modem Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nrf52_power_management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    nRF52 Power Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../number_allocations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Number Allocations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../packet_format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packet Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payload Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../qr_codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radio_presets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radio Presets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stats_binary_frames/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stats Binary Frame Structures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../terminal_chat_cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal Chat CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-upstream-meshcore-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Upstream MeshCore commit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-rak4631-board-class-and-relevant-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. RAK4631 board class and relevant files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-current-getbattmillivolts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Current getBattMilliVolts()
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-telemetry-call-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Telemetry call path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-architecture-facts-that-constrain-the-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Architecture facts that constrain the design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-rak9154-meshtastic-implementation-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. RAK9154 — Meshtastic implementation findings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-rak-onewireserial-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. RAK-OneWireSerial findings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-exact-protocol-frame-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Exact protocol / frame information
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-licensing-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Licensing assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-gpio-interface-mapping-unverified-configurable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. GPIO / interface mapping (UNVERIFIED — configurable)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-proposed-source-files-and-platformio-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Proposed source files and PlatformIO changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-polling-state-machine-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Polling / state-machine design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-risks-and-unresolved-hardware-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Risks and unresolved hardware questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/meshcore-dev/meshcore/edit/main/docs/RAK9154-IMPLEMENTATION-PLAN.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="rak9154-battery-telemetry-implementation-plan">RAK9154 Battery Telemetry — Implementation Plan</h1>
+<p>Status: research complete, Phase 1 implementation in progress.
+Everything below was read from source on 2026-10-18; items that could <strong>not</strong> be verified are marked <strong>UNVERIFIED</strong>.</p>
+<h2 id="1-upstream-meshcore-commit">1. Upstream MeshCore commit</h2>
+<ul>
+<li>Repo: <code>https://github.com/meshcore-dev/MeshCore</code>, branch <code>main</code></li>
+<li>Commit used: <code>81dbae592ffad40b4212bc0b37e82b38da08f4bc</code> ("Merge branch 'dev'", 2026-10-15)</li>
+<li>License: MIT</li>
+</ul>
+<p>Baseline build (<code>RAK_4631_repeater</code>): <strong>not completed in the authoring environment.</strong> PlatformIO's registry hosts
+(<code>api.registry.platformio.org</code>) were blocked by the sandbox egress policy, so the <code>nordicnrf52</code> platform and toolchain could not be
+installed. The baseline must be confirmed by CI / a developer machine (see section 11). Also note <code>sh build.sh</code> fails on
+Debian/Ubuntu because <code>/bin/sh</code> is dash and <code>build.sh</code> uses bash arrays; use <code>bash build.sh ...</code> there (macOS <code>sh</code> is bash and works).</p>
+<h2 id="2-rak4631-board-class-and-relevant-files">2. RAK4631 board class and relevant files</h2>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Board class <code>RAK4631Board : NRF52BoardDCDC</code></td>
+<td><code>variants/rak4631/RAK4631Board.h</code>, <code>RAK4631Board.cpp</code></td>
+</tr>
+<tr>
+<td>Globals (<code>board</code>, <code>radio_driver</code>, <code>sensors</code>, <code>rtc_clock</code>)</td>
+<td><code>variants/rak4631/target.h</code>, <code>target.cpp</code></td>
+</tr>
+<tr>
+<td>Pin map (<code>PIN_SERIAL1_RX=15</code>, <code>PIN_SERIAL1_TX=16</code>, <code>WB_IO*</code>)</td>
+<td><code>variants/rak4631/variant.h</code></td>
+</tr>
+<tr>
+<td>PlatformIO section <code>[rak4631]</code> and envs</td>
+<td><code>variants/rak4631/platformio.ini</code></td>
+</tr>
+<tr>
+<td>nRF52 base (<code>[nrf52_base]</code>)</td>
+<td>root <code>platformio.ini</code></td>
+</tr>
+<tr>
+<td>Repeater firmware</td>
+<td><code>examples/simple_repeater/{main.cpp,MyMesh.cpp,MyMesh.h}</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-current-getbattmillivolts">3. Current <code>getBattMilliVolts()</code></h2>
+<p><code>variants/rak4631/RAK4631Board.h</code>:</p>
+<pre><code class="language-cpp">#define PIN_VBAT_READ    5
+#define ADC_MULTIPLIER   (3 * 1.73 * 1.187 * 1000)
+#define BATTERY_SAMPLES 8
+uint16_t getBattMilliVolts() override {
+  analogReadResolution(12);
+  uint32_t raw = 0;
+  for (int i = 0; i &lt; BATTERY_SAMPLES; i++) raw += analogRead(PIN_VBAT_READ);
+  raw = raw / BATTERY_SAMPLES;
+  return (ADC_MULTIPLIER * raw) / 4096;
+}
+</code></pre>
+<p>Interface: <code>mesh::MainBoard::getBattMilliVolts()</code> is pure virtual, returns <code>uint16_t</code> (<code>src/MeshCore.h:47</code>).
+This is the <strong>only</strong> place that needs to change for Phase 1.</p>
+<p><code>NRF52_POWER_MANAGEMENT</code> (boot-voltage lockout, calls <code>getBattMilliVolts()</code> in <code>NRF52Board.cpp</code>) is <strong>not</strong> defined for the RAK4631 envs
+in this commit, so the cached getter returning "not available" at boot cannot trigger a boot lockout. Re-check if that ever changes.</p>
+<h2 id="4-telemetry-call-path">4. Telemetry call path</h2>
+<ul>
+<li>Remote telemetry request → <code>examples/simple_repeater/MyMesh.cpp:243-259</code>:
+  <code>telemetry.reset(); telemetry.addVoltage(TELEM_CHANNEL_SELF, board.getBattMilliVolts()/1000.0f); sensors.querySensors(perm_mask, telemetry);</code></li>
+<li>Repeater stats → <code>MyMesh.cpp:218</code> (<code>stats.batt_milli_volts</code>), also <code>StatsFormatHelper.h:14</code>.</li>
+<li>Local/remote CLI <code>power</code> → <code>src/helpers/CommonCLI.cpp:295</code>.</li>
+<li><strong>Cayenne LPP is used</strong> (<code>electroniccats/CayenneLPP @ 1.6.1</code>). Voltage on <code>TELEM_CHANNEL_SELF</code> (=1). <code>EnvironmentSensorManager::querySensors()</code>
+  appends other sensors on channels 2+.</li>
+<li>No protocol change is needed for Phase 1: the voltage rides the existing field.</li>
+</ul>
+<h2 id="5-architecture-facts-that-constrain-the-design">5. Architecture facts that constrain the design</h2>
+<ul>
+<li>Main loop (<code>examples/simple_repeater/main.cpp</code>): cooperative, single-threaded. Per iteration: serial CLI, <code>board.loop()</code>, <code>the_mesh.loop()</code>, <code>sensors.loop()</code>, <code>rtc_clock.tick()</code>.
+  <code>MainBoard::loop()</code> (<code>MeshCore.h</code>) is an existing, empty-by-default per-iteration hook → the natural place to run the RAK9154 service. <strong>No new scheduling mechanism is needed.</strong></li>
+<li>CLI extension: <code>MainBoard::handleCommand(const char* command, uint32_t sender_timestamp, char* reply)</code> is already consulted first by
+  <code>CommonCLI::handleCommand</code> (<code>CommonCLI.cpp:189</code>). A <code>rak9154</code> command can be added from the board class with no change to shared CLI code.
+  Reply buffer is 160 bytes.</li>
+<li>Hardware abstraction: <code>mesh::MainBoard</code> virtuals (<code>getBattMilliVolts</code>, <code>isChargerActive</code>, <code>handleCommand</code>, <code>loop</code>). <code>isChargerActive()</code> is reported by the <code>power</code> CLI command.</li>
+<li>Timing: the radio is driven from <code>the_mesh.loop()</code>; anything slow in <code>loop()</code>/<code>getBattMilliVolts()</code> delays packet handling. The <code>getBattMilliVolts()</code> path must stay a pure cache read.</li>
+<li>Build: <code>build.sh</code> wraps <code>pio run -e &lt;env&gt;</code>; <code>platformio.ini</code> loads <code>variants/*/platformio.ini</code> (single directory level).</li>
+<li>BSP / deps (pinned in root <code>platformio.ini</code>): <code>platform = nordicnrf52</code>; <code>framework-arduinoadafruitnrf52</code> from the MeshCore fork at commit
+  <code>d541301665b40959682252911e57b11df3ee651a</code>; <code>platformio/toolchain-gccarmnoneeabi@^1.140201.0</code>; CayenneLPP 1.6.1; RadioLib pinned to a commit.
+  <code>-w</code> (warnings off) is in the base flags.</li>
+</ul>
+<h2 id="6-rak9154-meshtastic-implementation-findings">6. RAK9154 — Meshtastic implementation findings</h2>
+<p>Files (Meshtastic <code>firmware</code> @ <code>8ebb6988b56e8da82bb56a3f55bf7908e9e5c465</code>): <code>src/modules/Telemetry/Sensor/RAK9154Sensor.{h,cpp}</code>, enabled by <code>-DHAS_RAKPROT=1</code>.</p>
+<ul>
+<li><strong>Pin:</strong> <code>HALF_UART_PIN</code>, defined in <code>variants/nrf52840/rak2560/variant.h</code> as <code>PIN_SERIAL1_RX</code> (code comment: "P0.15"). That is the <strong>RAK2560</strong> variant, not a RAK4631 repeater harness.</li>
+<li><strong>Serial:</strong> RAK's <code>SoftwareHalfSerial</code> at 9600 baud, one pin for TX and RX.</li>
+<li><strong>It delegates framing/checksum entirely to RAK-OneWireSerial</strong> (<code>RakSNHub_Protocl_API</code>); <code>RAK9154Sensor.cpp</code> itself only handles events.</li>
+<li><strong>Sequence:</strong> <code>init()</code> → master broadcasts a <em>provision BOOT</em> request → probe answers with a <em>provision</em> request → master replies assigning PID (<code>ADD_PID</code> event) → master issues one <em>get sensor data</em> request → afterwards the probe sends periodic <em>report</em> frames. A 50 ms periodic task drains the RX buffer (2 ms inter-byte timeout) and feeds <code>process()</code>.</li>
+<li><strong>Values used (only three):</strong></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>IPSO id</th>
+<th>Meaning</th>
+<th>Request-response path (<code>SDATA_REQ</code>)</th>
+<th>Periodic report path (<code>REPORT</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0xB8</code> (3384-3200)</td>
+<td>capacity, 1 byte, % (clamped to 100)</td>
+<td><code>msg[1]</code></td>
+<td><code>msg[1]</code></td>
+</tr>
+<tr>
+<td><code>0xB9</code> (3385-3200)</td>
+<td>DC current, 2 bytes, signed, mA</td>
+<td><strong>little-endian</strong> <code>(msg[2]&lt;&lt;8)+msg[1]</code></td>
+<td><strong>big-endian</strong> <code>(msg[1]&lt;&lt;8)+msg[2]</code></td>
+</tr>
+<tr>
+<td><code>0xBA</code> (3386-3200)</td>
+<td>DC voltage, 2 bytes, <strong>×10 → mV</strong></td>
+<td><strong>little-endian</strong></td>
+<td><strong>big-endian</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Quirk:</strong> the two Meshtastic code paths decode multi-byte values with <em>opposite</em> byte order. Whether this reflects real device behaviour or a bug is <strong>UNVERIFIED</strong>; the driver must treat it as an open hardware question (see section 13) and log raw bytes in <code>RAK9154_DEBUG</code> builds.
+- <strong>Charging:</strong> <code>current &gt; 0</code> is treated as charging (positive = into battery).
+- <strong>Error handling:</strong> checksum and sequence errors are logged only.
+- <strong>License: GPL-3.0</strong> (Meshtastic <code>LICENSE</code>).</p>
+<h2 id="7-rak-onewireserial-findings">7. RAK-OneWireSerial findings</h2>
+<p>Repo <code>beegee-tokyo/RAK-OneWireSerial</code> (cloned, current default branch). Files: <code>src/RAK-OneWireSerial.h</code>, <code>SoftwareHalfSerial.{h,cpp}</code>, <code>onewire_master_protocol.{c,h}</code>, <code>onewire_master_api.h</code>.</p>
+<ul>
+<li>README: RAK2560 SensorHub probes and IO probes, and <strong>RAK9154 Solar Battery Lite</strong>; "designed only for the WisBlock RAK4631"; preferred pin RX1 = P0.15, other GPIOs "should work but are untested"; library marked <strong>BETA</strong>.</li>
+<li><code>library.json</code>: <strong>MIT</strong>. But <code>SoftwareHalfSerial.{h,cpp}</code> carry an <strong>LGPL-2.1</strong> header (adapted from Arduino SoftwareSerial).</li>
+<li>Not consumable as a clean dependency here: it is built around global static state (<code>record[1]</code>, <code>menu</code>, <code>dataBuff</code>), has heavy <code>packed</code> structs with <code>enum</code> members (size depends on <code>-fshort-enums</code>), pulls <code>Adafruit_TinyUSB.h</code>, bit-bangs RX inside a GPIO ISR, and has no bounds-checking on several paths (<code>(U8)len</code> casts, unchecked <code>rakipso_tbl[ipso]</code> index, unchecked payload offsets). Only a few hundred lines of protocol are actually needed, so a <strong>minimal, bounds-checked, independent implementation is preferred</strong>.</li>
+</ul>
+<h2 id="8-exact-protocol-frame-information">8. Exact protocol / frame information</h2>
+<p>Derived from <code>onewire_master_protocol.c</code>; all multi-byte header fields below were checked by tracing the code.</p>
+<p>Serial: 9600 baud, 8N1, idle high, single wire (half duplex).</p>
+<pre><code>byte  0     0xFF   wakeup (ignored by receiver; library prepends it)
+byte  1     0x7E   delimiter / start
+byte  2..3  LEN    big-endian u16 = 6 (hub header) + hub payload_length
+byte  4     TYPE   0=ECHO 1=ATCMD 2=SENSORHUB   (only 2 is accepted)
+byte  5     FLAG   0=REQ 1=RSP
+--- SensorHub header (6 bytes, counted in LEN) ---
+byte  6     dest PID   (0x00 master, 0xFF unknown/broadcast)
+byte  7     source PID
+byte  8     sequence
+byte  9     hub type: 0 wakeup,1 provision,2 paramset,3 senddata,4 control,5 paramget,6 alert,7 err,8 ack,9 nack,...
+byte 10     payload_length
+byte 11     payload type
+byte 12..   payload (payload_length bytes)
+last        CHECKSUM
+</code></pre>
+<ul>
+<li><strong>Checksum</strong> (<code>cal_chksum</code>): <code>popcount(TYPE) + popcount(FLAG) + Σ popcount(b)</code> over the <code>LEN</code> bytes starting at byte 6, 8-bit wrap. It does <strong>not</strong> cover wakeup, delimiter, or LEN. It sits at byte <code>6+LEN</code>. (Receiver also tolerates <code>LEN == 6+payload_length-1</code>, an old firmware quirk.)</li>
+<li><strong>Master → probe, provision BOOT:</strong> <code>FF 7E 00 06 02 00 FF 00 &lt;seq&gt; 01 00 02 &lt;chk&gt;</code> (13 bytes).</li>
+<li><strong>Master → probe, get data:</strong> <code>FF 7E 00 06 02 00 &lt;pid&gt; 00 &lt;seq&gt; 03 00 02 &lt;chk&gt;</code> (13 bytes). The reference library writes the checksum over the (unused) sid byte; the wire frame is the 13 bytes above.</li>
+<li><strong>Probe → master provision (hub type 1, ptype 3 "VER3"), payload:</strong> <code>hw(1) sw(3) sn(18) provId(1) reserved(7) model(20) reserved(4) snsr_num(1) {sid(1) ipso(1) rule(2)}×snsr_num</code>. Master must answer with the same frame, flag=RSP, dest/source swapped, <code>provId</code> = assigned PID (reference assigns 1), checksum recomputed.</li>
+<li><strong>Sensor data payload (hub type 3):</strong> repeated <code>{sid(1), ipso(1), value(size[ipso])}</code>; sizes for our fields: <code>0xB8</code>:1, <code>0xB9</code>:2, <code>0xBA</code>:2. Flag=REQ is an unsolicited report; flag=RSP answers our get-data.</li>
+<li><strong>Candidate IDs from the task (0x15–0x1A):</strong> <strong>not found in any source read.</strong> The real IDs are the IPSO ones above. Temperature (<code>RAK_IPSO_TEMP_SENSOR</code> = 3303-3200 = <code>0x67</code>, 2 bytes) exists in the table, but <strong>no evidence that the RAK9154 reports it</strong>; status flags: <strong>no evidence at all</strong>. Phase 2 for those fields is therefore gated on seeing a real device's provision sensor list.</li>
+</ul>
+<h2 id="9-licensing-assessment">9. Licensing assessment</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>License</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MeshCore</td>
+<td>MIT</td>
+<td>target license for all new code</td>
+</tr>
+<tr>
+<td>Meshtastic <code>RAK9154Sensor.*</code></td>
+<td><strong>GPL-3.0</strong></td>
+<td><strong>not copied.</strong> Read only to learn observable behaviour (IDs, scaling, sequence). Facts about a wire protocol are not copyrightable expression.</td>
+</tr>
+<tr>
+<td>RAK-OneWireSerial protocol (<code>onewire_master_*</code>)</td>
+<td>MIT</td>
+<td>read for format; new code is independent; attribution added in docs</td>
+</tr>
+<tr>
+<td>RAK-OneWireSerial <code>SoftwareHalfSerial.*</code></td>
+<td><strong>LGPL-2.1</strong></td>
+<td><strong>not copied or linked.</strong> Own half-duplex transport written from scratch using the generic bit-bang technique</td>
+</tr>
+</tbody>
+</table>
+<p>This assessment is an engineering judgement, not legal advice.</p>
+<h2 id="10-gpio-interface-mapping-unverified-configurable">10. GPIO / interface mapping (<strong>UNVERIFIED — configurable</strong>)</h2>
+<p>Evidence: RAK-OneWireSerial README (preferred RX1 = P0.15) and Meshtastic RAK2560 (<code>HALF_UART_PIN = PIN_SERIAL1_RX</code>) both point at <strong>P0.15 = Arduino pin 15</strong>, which is <code>PIN_SERIAL1_RX</code> in <code>variants/rak4631/variant.h</code>.
+I did <strong>not</strong> find a public document showing (a) the RAK9154 Output 1 connector pinout, (b) the WisMesh Repeater harness pinout, or (c) which RAK19007/RAK19026 base-board net reaches P0.15, nor signal levels or any level-shift/protection circuit. These must be checked against RAK's datasheets and a multimeter/scope before connecting.</p>
+<p>Plan: <code>RAK9154_ONEWIRE_PIN</code> defaults to <code>PIN_SERIAL1_RX</code> (15) with a loud comment; override with <code>-D RAK9154_ONEWIRE_PIN=&lt;n&gt;</code>.
+Conflict: the RAK4631 env maps the GPS UART to the same pins (<code>PIN_GPS_TX=PIN_SERIAL1_RX</code>). The new target therefore adds <code>-UENV_INCLUDE_GPS</code> (same trade-off Meshtastic makes for this feature). Documented in <code>docs/RAK9154.md</code>.</p>
+<h2 id="11-proposed-source-files-and-platformio-changes">11. Proposed source files and PlatformIO changes</h2>
+<p>New (no upstream file edited except the board class):</p>
+<pre><code>variants/rak4631/rak9154/RAK9154Protocol.{h,cpp}    pure C++, no Arduino: frame build/parse/checksum, decode to struct
+variants/rak4631/rak9154/RAK9154Battery.{h,cpp}     state machine + cached telemetry + counters (transport injected)
+variants/rak4631/rak9154/RAK9154HalfSerial.{h,cpp}  nRF52 single-wire bit-bang transport
+variants/rak4631_rak9154/platformio.ini             new env (separate dir so no upstream .ini line changes)
+test/test_rak9154/                                  native googletest parser/state-machine tests + fixtures
+docs/RAK9154.md, docs/RAK9154-IMPLEMENTATION-PLAN.md
+.github/workflows/build-rak9154.yml
+</code></pre>
+<p>Why a second <code>variants/</code> directory: <code>extra_configs = variants/*/platformio.ini</code> only matches one directory level, so a sibling directory holding just the new <code>[env:...]</code> means upstream's <code>variants/rak4631/platformio.ini</code> is never edited and cannot conflict on merge.</p>
+<p>Edited upstream files (guarded by <code>#ifdef RAK9154_BATTERY</code>, small):
+- <code>variants/rak4631/RAK4631Board.h/.cpp</code>: include, one member, <code>getBattMilliVolts()</code> prefers the cached value, <code>loop()</code> override, <code>handleCommand()</code>/<code>isChargerActive()</code> overrides.
+- Root <code>platformio.ini</code>: add a native test env entry for the new tests (only needed if the existing <code>[env:native]</code> filter cannot be reused; otherwise untouched).</p>
+<p>Env: <code>[env:RAK_4631_repeater_RAK9154]</code> extends <code>env:RAK_4631_repeater</code>, appends <code>-D RAK9154_BATTERY</code>, <code>-UENV_INCLUDE_GPS</code>, and an <code>ADVERT_NAME</code>. All <code>rak9154/*.cpp</code> are wrapped in <code>#if defined(RAK9154_BATTERY) || defined(RAK9154_HOST_TEST)</code> so the stock target compiles them to nothing (stock image should be byte-identical; compare sizes).</p>
+<h2 id="12-polling-state-machine-design">12. Polling / state-machine design</h2>
+<p>All time is passed in (<code>loop(nowMs)</code>), transport is an interface → host-testable.</p>
+<p>States: <code>INIT → PROVISIONING → POLLING</code> (any state → <code>PROVISIONING</code> after repeated timeouts).
+- <code>PROVISIONING</code>: send provision BOOT broadcast, wait ≤ 250 ms (bounded) for the probe's provision request; reply with RSP assigning PID 1. Retry every poll period.
+- <code>POLLING</code>: every <code>RAK9154_POLL_INTERVAL_MS</code> (default 30 000, clamped 15 000–60 000) send get-data to the PID and wait ≤ 250 ms. Unsolicited reports are accepted at any time.
+- RX is interrupt-fed into a 64-byte ring buffer; <code>loop()</code> drains it non-blockingly (never waits for bytes), assembles frames with a length-prefixed state machine (max frame 64 bytes, bad length → resync on next <code>0x7E</code>), then validates: delimiter, TYPE=2, LEN consistency, checksum, hub type, bounded payload walk, known IPSO sizes.
+- Cache updated only from fully validated frames, per-field. <code>hasValidTelemetry()</code> = have voltage <strong>and</strong> <code>now - lastValid &lt; 5 min</code> (configurable). Getter is a few loads; never touches the wire.
+- Counters: ok polls, timeouts, bad checksums, invalid frames, unknown IPSO ids, provisions, last response age. Exposed via <code>rak9154 status</code>.
+- TX is the only blocking part: ≤ 13 bytes ≈ 14 ms with that one pin's interrupt masked, once per poll. This is a bounded exception to "non-blocking"; the alternative (timer/PPI-driven TX) is a candidate follow-up if bench tests show jitter.</p>
+<h2 id="13-risks-and-unresolved-hardware-questions">13. Risks and unresolved hardware questions</h2>
+<ol>
+<li><strong>GPIO / Output 1 pinout / level shifting: UNVERIFIED</strong> (section 10). Wrong pin = no data; wrong wiring could damage the GPIO.</li>
+<li><strong>Byte order of 16-bit values</strong> differs between the two Meshtastic code paths. First bench step: capture raw frames (<code>RAK9154_DEBUG</code>) and compare with the multimeter voltage; decode is isolated in one function.</li>
+<li><strong>Does the RAK9154 need the provisioning handshake, or only emit periodic reports?</strong> Driver supports both, but the real behaviour is untested.</li>
+<li><strong>Temperature / status fields:</strong> no verified IPSO ids; Phase 2 depends on the provision sensor list from real hardware.</li>
+<li><strong>Bit-banged RX timing</strong> can be corrupted by higher-priority interrupts (SoftDevice/USB); checksum rejects corrupted frames, and a missed frame only delays an update.</li>
+<li><strong>GPS and the one-wire pin share P0.15 by default</strong>; GPS is disabled in the new target.</li>
+<li><strong>PlatformIO builds not run in the authoring sandbox</strong> (registry blocked) — Phase 1 acceptance criteria 1–3 and all on-hardware criteria (4–10) are open until CI/bench confirm them.</li>
+<li><code>sh build.sh</code> does not work on dash-based <code>/bin/sh</code>; use <code>bash build.sh</code>.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
