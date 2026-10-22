@@ -1,0 +1,138 @@
+name: Sync upstream MeshCore and publish firmware
+
+# Weekly (and on demand): merge the newest upstream `repeater-v*` release into this fork, test it, build the stock
+# and the RAK9154 targets, and only if everything passes push the merge to the default branch and publish the
+# RAK9154 firmware as a GitHub Release. On a merge conflict or build failure nothing is pushed and an issue is opened.
+#
+# Requirements: this file must be on the DEFAULT branch (scheduled workflows only run from there), and Actions must
+# be enabled on the fork (GitHub disables scheduled runs on forks until you enable them, and after 60 days of no
+# repository activity). Repo Settings -> Actions -> General -> Workflow permissions must allow "Read and write".
+
+on:
+  schedule:
+    - cron: '17 9 * * 1'          # Mondays 09:17 UTC
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Upstream tag/branch to merge instead of the newest repeater-v* tag (e.g. repeater-v1.19.0 or upstream/main)'
+        required: false
+        default: ''
+      publish:
+        description: 'Push the merge and publish a release if everything passes'
+        type: boolean
+        default: true
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Merge newest upstream release
+        id: merge
+        env:
+          SYNC_REF: ${{ inputs.ref }}
+        run: |
+          set +e
+          .github/scripts/sync-upstream.sh
+          rc=$?
+          echo "script exit code $rc"
+          [ "$rc" = 0 ] || [ "$rc" = 3 ] || [ "$rc" = 4 ] || exit "$rc"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+
+      - name: Open an issue about a merge conflict
+        if: steps.merge.outputs.status == 'conflict'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Merging upstream \`${{ steps.merge.outputs.ref }}\` conflicts with this fork. Nothing was pushed."
+            echo
+            echo "Conflicting files:"; echo '```'; cat sync-conflicts.txt; echo '```'
+            echo
+            echo "Resolve locally (see the 'Keeping this fork up to date' section of README.md), push, and re-run this workflow."
+          } > issue.md
+          gh issue create --title "Upstream sync conflict: ${{ steps.merge.outputs.ref }}" --body-file issue.md
+
+      - name: Stop when there is nothing to do
+        if: steps.merge.outputs.status != 'merged'
+        run: echo "status=${{ steps.merge.outputs.status }} ref=${{ steps.merge.outputs.ref }}; nothing to build"
+
+      - name: Install googletest
+        if: steps.merge.outputs.status == 'merged'
+        run: sudo apt-get update && sudo apt-get install -y libgtest-dev g++
+
+      - name: Host tests (ASan + UBSan)
+        if: steps.merge.outputs.status == 'merged'
+        run: |
+          set -e
+          T=test/test_rak9154; R=variants/rak4631/rak9154
+          FLAGS="-std=c++17 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined -Wall -DRAK9154_BATTERY"
+          mkdir -p build-host
+          g++ $FLAGS -I$R -I$T $T/test_protocol.cpp $T/test_battery.cpp $R/RAK9154Protocol.cpp $R/RAK9154Battery.cpp -lgtest -lgtest_main -lpthread -o build-host/test_core
+          g++ $FLAGS -DNRF52_PLATFORM -I$T/shim -I$R $T/test_halfserial.cpp $R/RAK9154HalfSerial.cpp -lgtest -lgtest_main -lpthread -o build-host/test_halfserial
+          ./build-host/test_core
+          ./build-host/test_halfserial
+
+      - uses: ./.github/actions/setup-build-environment
+        if: steps.merge.outputs.status == 'merged'
+
+      - name: Build stock RAK_4631_repeater
+        if: steps.merge.outputs.status == 'merged'
+        run: pio run -e RAK_4631_repeater
+
+      - name: Build RAK_4631_repeater_RAK9154
+        if: steps.merge.outputs.status == 'merged'
+        run: pio run -e RAK_4631_repeater_RAK9154
+
+      - name: Collect firmware
+        if: steps.merge.outputs.status == 'merged'
+        run: |
+          set -e
+          V="${{ steps.merge.outputs.ref }}"
+          mkdir -p dist
+          for ext in zip hex; do
+            cp ".pio/build/RAK_4631_repeater_RAK9154/firmware.$ext" "dist/RAK_4631_repeater_RAK9154-$V.$ext"
+          done
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+          ls -l dist
+
+      - name: Push the merge and publish a release
+        if: steps.merge.outputs.status == 'merged' && (github.event_name == 'schedule' || inputs.publish)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          V="${{ steps.merge.outputs.ref }}"
+          TAG="rak9154-$V"
+          SHA="$(git rev-parse --short HEAD)"
+          git push origin "HEAD:${{ github.event.repository.default_branch }}"
+          git tag -f "$TAG" HEAD && git push -f origin "$TAG"
+          cat > notes.md <<NOTES
+          RAK9154 firmware built on upstream MeshCore \`$V\` (fork commit \`$SHA\`).
+
+          Files: \`RAK_4631_repeater_RAK9154-$V.zip\` (DFU package) and \`.hex\`. Checksums in \`SHA256SUMS.txt\`.
+
+          Automatically merged, unit-tested (host tests) and compiled for both the stock and the RAK9154 target.
+          **Not tested on hardware for this version.** Flash to a test node first and check \`rak9154 status\`.
+          NOTES
+          gh release create "$TAG" dist/* --title "RAK9154 firmware on MeshCore $V" --notes-file notes.md --latest
+
+      - name: Open an issue if tests or builds failed
+        if: failure() && steps.merge.outputs.status == 'merged'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --title "Upstream sync failed to build/test: ${{ steps.merge.outputs.ref }}" \
+            --body "The merge of upstream \`${{ steps.merge.outputs.ref }}\` was NOT pushed because a test or build failed. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."

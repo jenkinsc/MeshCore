@@ -287,6 +287,36 @@ never conflict with upstream. This procedure has been written down but **not yet
 If you improve this, please consider offering the RAK9154 support back upstream as a pull request to
 [meshcore-dev/MeshCore](https://github.com/meshcore-dev/MeshCore); the guarded, self-contained layout is meant to make that easy.
 
+#### Automatic sync and firmware releases (optional)
+
+The workflow `.github/workflows/sync-upstream.yml` does the steps above for you every Monday (and whenever you run it by
+hand from the **Actions** tab):
+
+1. Fetches upstream and finds the newest `repeater-v*` release tag. If this fork already contains it, it stops.
+2. Merges that tag into the default branch. **Upstream's workflow changes are never taken** (so upstream's own release
+   workflows do not start running on your fork); our workflows always win.
+3. Runs the host tests and builds both `RAK_4631_repeater` and `RAK_4631_repeater_RAK9154`.
+4. **Only if everything passes**, pushes the merge and publishes a **GitHub Release** (shown on your fork's *Releases* page)
+   named `rak9154-<upstream tag>` with the RAK9154 `firmware.zip`/`.hex` and `SHA256SUMS.txt` attached.
+5. On a merge conflict or a failed test/build it pushes nothing and opens an **issue** with the details.
+
+You can choose a different upstream ref when running it manually (for example `repeater-v1.19.0` or `upstream/main`), and untick
+*publish* to do a dry run that only builds.
+
+One-time setup on your fork (GitHub does not do these automatically):
+- The workflow file must be on the fork's **default branch** (scheduled workflows only run from there). If the RAK9154 work is
+  still on `feature/rak9154-driver`, merge it into `main` first.
+- Enable Actions on the fork (**Actions** tab -> enable). Scheduled runs are off by default on forks and are paused by GitHub
+  after 60 days without repository activity; a merged release or any commit keeps them alive.
+- **Settings -> Actions -> General -> Workflow permissions -> Read and write permissions.**
+
+Limits to know about: releases are **built and unit-tested but not tested on hardware**; every release page says so, and you should flash
+a test node and check `rak9154 status` before rolling out. A release only appears when upstream publishes a new `repeater-v*` tag, so
+unreleased upstream commits are not built unless you run it manually with `upstream/main`. The merge logic itself is covered by a
+local test, `.github/scripts/test-sync-upstream.sh`, which runs it against a throw-away fake upstream (up to date, clean merge,
+conflict, version ordering, protected workflows); the full workflow including the GitHub-side steps (push, release, issues)
+has **not been run yet**, so check the first run's log.
+
 ### Credits and licensing
 
 The driver is original code under the MIT license, consistent with MeshCore. The protocol was worked out from RAK's published
