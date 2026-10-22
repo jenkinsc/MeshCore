@@ -6,7 +6,8 @@ name: Sync upstream MeshCore and publish firmware
 #
 # Requirements: this file must be on the DEFAULT branch (scheduled workflows only run from there), and Actions must
 # be enabled on the fork (GitHub disables scheduled runs on forks until you enable them, and after 60 days of no
-# repository activity). Repo Settings -> Actions -> General -> Workflow permissions must allow "Read and write".
+# repository activity). The repo-wide default token permission can stay read-only: this workflow requests the write
+# access it needs (contents, issues) itself via the `permissions:` block below.
 
 on:
   schedule:
@@ -21,6 +22,10 @@ on:
         description: 'Push the merge and publish a release if everything passes'
         type: boolean
         default: true
+      force_release:
+        description: 'Build and publish a release from the current code even if there is no new upstream release (use for the first release)'
+        type: boolean
+        default: false
 
 concurrency:
   group: sync-upstream
@@ -65,16 +70,23 @@ jobs:
           } > issue.md
           gh issue create --title "Upstream sync conflict: ${{ steps.merge.outputs.ref }}" --body-file issue.md
 
-      - name: Stop when there is nothing to do
-        if: steps.merge.outputs.status != 'merged'
-        run: echo "status=${{ steps.merge.outputs.status }} ref=${{ steps.merge.outputs.ref }}; nothing to build"
+      - name: Decide whether to build
+        id: plan
+        run: |
+          st="${{ steps.merge.outputs.status }}"
+          if [ "$st" = merged ] || { [ "$st" = up-to-date ] && [ "${{ inputs.force_release }}" = true ]; }; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "status=$st ref=${{ steps.merge.outputs.ref }}; nothing to build"
+          fi
 
       - name: Install googletest
-        if: steps.merge.outputs.status == 'merged'
+        if: steps.plan.outputs.build == 'true'
         run: sudo apt-get update && sudo apt-get install -y libgtest-dev g++
 
       - name: Host tests (ASan + UBSan)
-        if: steps.merge.outputs.status == 'merged'
+        if: steps.plan.outputs.build == 'true'
         run: |
           set -e
           T=test/test_rak9154; R=variants/rak4631/rak9154
@@ -86,18 +98,18 @@ jobs:
           ./build-host/test_halfserial
 
       - uses: ./.github/actions/setup-build-environment
-        if: steps.merge.outputs.status == 'merged'
+        if: steps.plan.outputs.build == 'true'
 
       - name: Build stock RAK_4631_repeater
-        if: steps.merge.outputs.status == 'merged'
+        if: steps.plan.outputs.build == 'true'
         run: pio run -e RAK_4631_repeater
 
       - name: Build RAK_4631_repeater_RAK9154
-        if: steps.merge.outputs.status == 'merged'
+        if: steps.plan.outputs.build == 'true'
         run: pio run -e RAK_4631_repeater_RAK9154
 
       - name: Collect firmware
-        if: steps.merge.outputs.status == 'merged'
+        if: steps.plan.outputs.build == 'true'
         run: |
           set -e
           V="${{ steps.merge.outputs.ref }}"
@@ -109,16 +121,16 @@ jobs:
           ls -l dist
 
       - name: Push the merge and publish a release
-        if: steps.merge.outputs.status == 'merged' && (github.event_name == 'schedule' || inputs.publish)
+        if: steps.plan.outputs.build == 'true' && (github.event_name == 'schedule' || inputs.publish)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
           V="${{ steps.merge.outputs.ref }}"
-          TAG="rak9154-$V"
           SHA="$(git rev-parse --short HEAD)"
+          TAG="rak9154-$V-$SHA"
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
-          git tag -f "$TAG" HEAD && git push -f origin "$TAG"
+          git tag "$TAG" HEAD && git push origin "$TAG"
           cat > notes.md <<NOTES
           RAK9154 firmware built on upstream MeshCore \`$V\` (fork commit \`$SHA\`).
 
@@ -130,7 +142,7 @@ jobs:
           gh release create "$TAG" dist/* --title "RAK9154 firmware on MeshCore $V" --notes-file notes.md --latest
 
       - name: Open an issue if tests or builds failed
-        if: failure() && steps.merge.outputs.status == 'merged'
+        if: failure() && steps.plan.outputs.build == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

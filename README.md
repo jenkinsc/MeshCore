@@ -309,14 +309,15 @@ hand from the **Actions** tab):
 5. On a merge conflict or a failed test/build it pushes nothing and opens an **issue** with the details.
 
 You can choose a different upstream ref when running it manually (for example `repeater-v1.19.0` or `upstream/main`), and untick
-*publish* to do a dry run that only builds.
+*publish* to do a dry run that only builds. Tick *force_release* to build and publish the current code even when there is no new
+upstream release (use it for the very first release).
 
 One-time setup on your fork (GitHub does not do these automatically):
 - The workflow file must be on the fork's **default branch** (scheduled workflows only run from there). If the RAK9154 work is
   still on `feature/rak9154-driver`, merge it into `main` first.
 - Enable Actions on the fork (**Actions** tab -> enable). Scheduled runs are off by default on forks and are paused by GitHub
   after 60 days without repository activity; a merged release or any commit keeps them alive.
-- **Settings -> Actions -> General -> Workflow permissions -> Read and write permissions.**
+- Nothing else: the repo-wide token default can stay read-only (the safer setting); the workflow asks for the write access it needs itself. Also turn on **Issues** (Settings -> General -> Features), because failures are reported as issues.
 
 Limits to know about: releases are **built and unit-tested but not tested on hardware**; every release page says so, and you should flash
 a test node and check `rak9154 status` before rolling out. A release only appears when upstream publishes a new `repeater-v*` tag, so
