@@ -1,0 +1,69 @@
+name: Build RAK9154 firmware
+
+on:
+  push:
+    branches: [main, dev, 'feature/rak9154-*']
+    paths:
+      - 'variants/rak4631/**'
+      - 'variants/rak4631_rak9154/**'
+      - 'test/test_rak9154/**'
+      - 'src/**'
+      - 'platformio.ini'
+      - '.github/workflows/build-rak9154.yml'
+  pull_request:
+    paths:
+      - 'variants/rak4631/**'
+      - 'variants/rak4631_rak9154/**'
+      - 'test/test_rak9154/**'
+      - 'src/**'
+      - 'platformio.ini'
+      - '.github/workflows/build-rak9154.yml'
+  workflow_dispatch:
+
+jobs:
+  host-tests:
+    name: Parser / driver host tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install googletest
+        run: sudo apt-get update && sudo apt-get install -y libgtest-dev g++
+      - name: Build and run (ASan + UBSan)
+        run: |
+          set -e
+          T=test/test_rak9154
+          R=variants/rak4631/rak9154
+          FLAGS="-std=c++17 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined -Wall -DRAK9154_BATTERY"
+          mkdir -p build-host
+          g++ $FLAGS -I$R -I$T $T/test_protocol.cpp $T/test_battery.cpp $R/RAK9154Protocol.cpp $R/RAK9154Battery.cpp \
+              -lgtest -lgtest_main -lpthread -o build-host/test_core
+          g++ $FLAGS -DNRF52_PLATFORM -I$T/shim -I$R $T/test_halfserial.cpp $R/RAK9154HalfSerial.cpp \
+              -lgtest -lgtest_main -lpthread -o build-host/test_halfserial
+          ./build-host/test_core
+          ./build-host/test_halfserial
+
+  firmware:
+    name: Build ${{ matrix.environment }}
+    needs: host-tests
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - RAK_4631_repeater              # stock target: must keep building unchanged
+          - RAK_4631_repeater_RAK9154      # custom target
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-build-environment
+      - name: Build
+        run: pio run -e ${{ matrix.environment }}
+      - name: Upload firmware
+        if: matrix.environment == 'RAK_4631_repeater_RAK9154'
+        uses: actions/upload-artifact@v6
+        with:
+          name: RAK_4631_repeater_RAK9154-firmware
+          path: |
+            .pio/build/RAK_4631_repeater_RAK9154/firmware.hex
+            .pio/build/RAK_4631_repeater_RAK9154/firmware.zip
+            .pio/build/RAK_4631_repeater_RAK9154/firmware.elf
+          if-no-files-found: error

@@ -3,6 +3,13 @@
 #include "nrf_gpio.h"
 
 #include "RAK4631Board.h"
+#include <stdio.h>
+#include <stdlib.h>
+#ifdef RAK9154_BATTERY
+#include <CayenneLPP.h>
+#include <rak9154/RAK9154Telemetry.h>
+#endif
+#include <string.h>
 
 #ifdef ETHERNET_ENABLED
 // Drive WB_IO2 HIGH as early as possible using direct register access.
@@ -64,4 +71,45 @@ void RAK4631Board::begin() {
 #endif
   digitalWrite(SX126X_POWER_EN, HIGH);
   delay(10);   // give sx1262 some time to power up
+
+#ifdef RAK9154_BATTERY
+  rak9154.begin();   // returns false (driver stays inert, stock ADC used) if the pin/interrupt can't be claimed
+#endif
 }
+
+#ifdef RAK9154_BATTERY
+extern RAK4631Board board;   // defined in target.cpp
+
+void rak9154_add_telemetry(CayenneLPP& telemetry, uint8_t self_channel, uint8_t extra_channel) {
+  rak9154::appendTelemetry(board.rak9154Battery(), telemetry, self_channel, extra_channel);
+}
+
+// CLI: "rak9154" / "rak9154 status" | "diag" | "poll" | "info" | "raw [offset]". Reply buffers are 160 bytes; stay below.
+bool RAK4631Board::handleCommand(const char* command, uint32_t /*sender_timestamp*/, char* reply) {
+  if (strncmp(command, "rak9154", 7) != 0 || (command[7] != 0 && command[7] != ' ')) return false;
+  const char* arg = command + 7;
+  while (*arg == ' ') arg++;
+  constexpr size_t REPLY_MAX = 150;
+
+  if (*arg == 0 || strcmp(arg, "status") == 0) {
+    rak9154.formatStatus(reply, REPLY_MAX);
+  } else if (strcmp(arg, "poll") == 0) {
+    rak9154.requestPollNow();
+    strcpy(reply, "RAK9154 poll requested");
+  } else if (strcmp(arg, "info") == 0) {
+    rak9154.formatInfo(reply, REPLY_MAX);
+  } else if (strncmp(arg, "raw", 3) == 0 && (arg[3] == 0 || arg[3] == ' ')) {
+    rak9154.formatRaw(reply, REPLY_MAX, (size_t)atoi(arg + 3));    // "raw" or "raw <byte offset>"
+  } else if (strncmp(arg, "gap", 3) == 0 && (arg[3] == 0 || arg[3] == ' ')) {
+    if (arg[3] == ' ') rak9154.setTxGapBits((uint8_t)atoi(arg + 4));       // runtime experiment, not persisted
+    snprintf(reply, REPLY_MAX, "RAK9154 tx gap %u bits", (unsigned)rak9154.getTxGapBits());
+  } else if (strcmp(arg, "extra") == 0) {
+    rak9154.formatExtra(reply, REPLY_MAX);
+  } else if (strcmp(arg, "diag") == 0) {
+    rak9154.formatDiag(reply, REPLY_MAX);
+  } else {
+    strcpy(reply, "usage: rak9154 [status|diag|extra|gap [n]|poll|info|raw [offset]]");
+  }
+  return true;
+}
+#endif
