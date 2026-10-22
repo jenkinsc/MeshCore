@@ -1,4 +1,4 @@
-name: Build and deploy Docs site to GitHub Pages
+name: Build and deploy RAK9154 docs site to GitHub Pages
 
 on:
   workflow_dispatch:
@@ -25,12 +25,13 @@ jobs:
       - name: Build
         run: |
           pip install mkdocs-material
-          mkdocs build
+          mkdir _site_src
+          cp pages/index.md docs/RAK9154.md docs/RAK9154-IMPLEMENTATION-PLAN.md _site_src/
+          mkdocs build -f mkdocs-rak9154.yml
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          cname: docs.meshcore.io
           publish_dir: ./site
           publish_branch: 'gh-pages'

@@ -1,0 +1,22 @@
+# Docs site for this fork only (upstream's mkdocs.yml is left untouched to avoid merge conflicts).
+# Built by .github/workflows/github-pages.yml into a temporary folder.
+site_name: MeshCore RAK9154
+site_url: https://jenkinsc.github.io/MeshCore-RAK9154/
+site_description: RAK9154 solar battery telemetry for the MeshCore RAK4631 repeater
+docs_dir: _site_src
+site_dir: site
+repo_name: jenkinsc/MeshCore-RAK9154
+repo_url: https://github.com/jenkinsc/MeshCore-RAK9154/
+theme:
+  name: material
+  features: [content.code.copy, search.highlight]
+markdown_extensions:
+  - attr_list
+  - tables
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+nav:
+  - Home: index.md
+  - RAK9154 guide: RAK9154.md
+  - Implementation plan: RAK9154-IMPLEMENTATION-PLAN.md
