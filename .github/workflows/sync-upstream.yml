@@ -68,7 +68,7 @@ jobs:
             echo
             echo "Resolve locally (see the 'Keeping this fork up to date' section of README.md), push, and re-run this workflow."
           } > issue.md
-          gh issue create --title "Upstream sync conflict: ${{ steps.merge.outputs.ref }}" --body-file issue.md
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Upstream sync conflict: ${{ steps.merge.outputs.ref }}" --body-file issue.md
 
       - name: Decide whether to build
         id: plan
@@ -139,12 +139,12 @@ jobs:
           Automatically merged, unit-tested (host tests) and compiled for both the stock and the RAK9154 target.
           **Not tested on hardware for this version.** Flash to a test node first and check \`rak9154 status\`.
           NOTES
-          gh release create "$TAG" dist/* --title "RAK9154 firmware on MeshCore $V" --notes-file notes.md --latest
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" dist/* --title "RAK9154 firmware on MeshCore $V" --notes-file notes.md --latest
 
       - name: Open an issue if tests or builds failed
         if: failure() && steps.plan.outputs.build == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue create --title "Upstream sync failed to build/test: ${{ steps.merge.outputs.ref }}" \
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Upstream sync failed to build/test: ${{ steps.merge.outputs.ref }}" \
             --body "The merge of upstream \`${{ steps.merge.outputs.ref }}\` was NOT pushed because a test or build failed. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
