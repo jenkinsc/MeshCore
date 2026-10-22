@@ -270,6 +270,7 @@ sides: the upstream change, and our lines inside `#ifdef RAK9154_BATTERY` blocks
 | `variants/rak4631/RAK4631Board.h` | includes, `getBattMilliVolts()` returning the cached value, `loop()`, `isChargerActive()`, `handleCommand()`, members |
 | `variants/rak4631/RAK4631Board.cpp` | `begin()` calls `rak9154.begin()`, the `rak9154` console command, the telemetry hook function |
 | `src/helpers/sensors/EnvironmentSensorManager.cpp` | one declaration and one `#ifdef RAK9154_BATTERY` block in `querySensors()` |
+| `README.md` | this fork section (inserted before "Hardware Compatibility") and the notice at the top; keep both upstream's text and ours |
 
 After merging, always check (CI does the first two):
 1. `pio run -e RAK_4631_repeater` and `pio run -e RAK_4631_repeater_RAK9154` both build.
