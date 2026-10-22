@@ -861,13 +861,17 @@ seen on a real probe. Not published over the mesh yet.</p>
 <td><strong>battery</strong> temperature</td>
 <td>RAK9154 <code>0x67</code></td>
 </tr>
+<tr>
+<td>same channel as the battery temperature</td>
+<td><strong>fault byte</strong> (LPP digital input, 0 = none; bit0 OV, 1 charge-OC, 2 charge-low-temp, 3 charge-high-temp, 4 charge-short, 5 charge-OC-lock)</td>
+<td>RAK9154 <code>0xF3</code> fault word (bits 6..11 shifted down)</td>
+</tr>
 </tbody>
 </table>
 <p>Notes: LPP "current" is unsigned, so only charging current is shown and discharge reads 0 A; the probe's sign
 convention is unverified (compare <code>rak9154 status</code> current by day and night). Battery temperature is not put on
 channel 1 because the chip temperature is already there and two temperatures on one channel collide in the app.
-Only requesters with base telemetry permission get the extras (guests see voltage only). Fault/FW words (<code>0xF3</code>) are
-not published yet. The hook is a few lines in <code>EnvironmentSensorManager::querySensors</code>, guarded by <code>RAK9154_BATTERY</code>.</p>
+Only requesters with base telemetry permission get the extras (guests see voltage only). The fault word (<code>0xF3</code>) is published as the fault byte; the firmware-version word stays console-only (<code>rak9154 extra</code>). The hook is a few lines in <code>EnvironmentSensorManager::querySensors</code>, guarded by <code>RAK9154_BATTERY</code>.</p>
 <h2 id="byte-order-bench-procedure">Byte-order bench procedure</h2>
 <p>Voltage endianness is unverified. With a battery of known voltage: run <code>rak9154 raw</code> and <code>rak9154 info</code>, compare the
 decoded value. A <code>range rejects</code> count rising means the byte order is wrong; flip <code>RAK9154_RSP_BIG_ENDIAN</code> /
