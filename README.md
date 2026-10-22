@@ -129,11 +129,15 @@ hardware 0x44, firmware 1.2.9):
 - The probe is reached on the default pin (P0.15) and answers; the firmware decodes its announcement and sensor list.
 - Console showed `V:12.31V I:41mA SOC:99% T:21.0C ok:15 to:0 cs:0 inv:0` (valid frames, no timeouts, no checksum errors), and
   the app's Telemetry screen showed the battery on channel 1.
+- The voltage matches a multimeter reading at the battery.
+- The app's Telemetry screen shows battery %, voltage, charge current, state of charge (%) on channel 1 and the battery
+  temperature on channel 2 (for example `100% / 12.43v`, `0.000A`, `100%`, `36.5C`).
+- `rak9154 extra` returned `ch19=0000 (faults:none)` and `ch1A=0004 (fw:V00.04)` from the real probe, so the `0xF3` words
+  arrive as documented: channel 0x19 carries the battery fault bits and 0x1A the battery firmware version.
 
 Not verified yet:
-- The voltage has not been compared against a multimeter; the values are plausible but treat them as unconfirmed until you do.
 - The **sign of the current** (which direction is "charging") is assumed, not confirmed.
-- The two `0xF3` words (battery faults / firmware version) have not been received from a real probe yet.
+- A non-zero fault word (only the "no faults" case has been seen) and publishing the fault/firmware words in telemetry.
 - Long-term stability (days) and behaviour with other RAK9154/probe firmware versions.
 - Only one hardware unit has been tested. Reports from other setups are very welcome.
 
