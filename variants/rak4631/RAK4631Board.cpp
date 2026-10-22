@@ -89,10 +89,12 @@ bool RAK4631Board::handleCommand(const char* command, uint32_t /*sender_timestam
     rak9154.formatInfo(reply, REPLY_MAX);
   } else if (strncmp(arg, "raw", 3) == 0 && (arg[3] == 0 || arg[3] == ' ')) {
     rak9154.formatRaw(reply, REPLY_MAX, (size_t)atoi(arg + 3));    // "raw" or "raw <byte offset>"
+  } else if (strcmp(arg, "extra") == 0) {
+    rak9154.formatExtra(reply, REPLY_MAX);
   } else if (strcmp(arg, "diag") == 0) {
     rak9154.formatDiag(reply, REPLY_MAX);
   } else {
-    strcpy(reply, "usage: rak9154 [status|diag|poll|info|raw [offset]]");
+    strcpy(reply, "usage: rak9154 [status|diag|extra|poll|info|raw [offset]]");
   }
   return true;
 }

@@ -144,6 +144,7 @@ public:
   // Text for the CLI. All write at most `cap` bytes including the terminator and return the length.
   size_t formatStatus(char* out, size_t cap) const;
   size_t formatInfo(char* out, size_t cap) const;
+  size_t formatExtra(char* out, size_t cap) const;   // 0xF3 battery status words (faults / firmware)
   size_t formatDiag(char* out, size_t cap) const;
   size_t formatRaw(char* out, size_t cap, size_t offset = 0) const;   // hex of the last received frame from `offset`
 
@@ -179,6 +180,7 @@ private:
   bool     _haveVolt = false;     uint32_t _voltage_mV = 0;     uint32_t _voltageAt = 0;
   bool     _haveCur  = false;     int32_t  _current_mA = 0;     uint32_t _currentAt = 0;
   bool     _haveSoc  = false;     uint8_t  _soc = 0;            uint32_t _socAt = 0;
+  uint8_t  _extraCount = 0;  uint8_t _extraCh[2] = {0, 0};  uint16_t _extraVal[2] = {0, 0};  uint32_t _extraAt = 0;
   bool     _haveTemp = false;     int16_t  _temp_dC = 0;        uint32_t _tempAt = 0;
 
   bool     _haveProv = false;

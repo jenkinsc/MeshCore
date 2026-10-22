@@ -243,6 +243,45 @@ TEST(Decoder, UnknownChannelStopsWalkButKeepsEarlierFields) {
   EXPECT_EQ(r.unknownIds, 1);
 }
 
+TEST(Decoder, FullRak9154SensorSetWithBothF3Entries) {
+  // the probe seen on real hardware lists: BA B9 B8 67 F3 F3. Values are synthetic; the layout follows RAK's decoder docs.
+  FrameSpec s;
+  s.payload = cat({entry(0, 0xBA, u16(1325, false)), entry(0, 0xB9, u16((uint16_t)-150, false)), entry(0, 0xB8, {87}),
+                   entry(0, 0x67, u16(213, false)), entry(0x1A, 0xF3, u16(0x0002, false)), entry(0x1B, 0xF3, u16(0x0000, false))});
+  Reading r = decodeOk(encode(s));
+  EXPECT_TRUE(r.hasVoltage); EXPECT_EQ(r.voltage_mV, 13250u);
+  EXPECT_TRUE(r.hasCurrent); EXPECT_EQ(r.current_mA, -150);
+  EXPECT_TRUE(r.hasSoc);     EXPECT_EQ(r.soc, 87);
+  EXPECT_TRUE(r.hasTemp);    EXPECT_EQ(r.temp_decideg, 213);
+  ASSERT_EQ(r.statusCount, 2);
+  EXPECT_EQ(r.statusChannel[0], 0x1A); EXPECT_EQ(r.statusValue[0], 2u);
+  EXPECT_EQ(r.statusChannel[1], 0x1B); EXPECT_EQ(r.statusValue[1], 0u);
+  EXPECT_EQ(r.unknownIds, 0);
+}
+
+TEST(Decoder, StatusWordsBeyondTwoAreSkippedSafely) {
+  FrameSpec s;
+  s.payload = cat({entry(1, 0xF3, u16(1, false)), entry(2, 0xF3, u16(2, false)), entry(3, 0xF3, u16(3, false)), entry(0, IPSO_SOC, {50})});
+  Reading r = decodeOk(encode(s));
+  EXPECT_EQ(r.statusCount, 2);
+  EXPECT_TRUE(r.hasSoc);                       // the walk continued past the third entry
+}
+
+TEST(Decoder, StatusWordText) {
+  char b[64];
+  describeStatusWord(0, b, sizeof b);                 EXPECT_STREQ(b, "faults:none");
+  describeStatusWord(0x0002, b, sizeof b);            EXPECT_STREQ(b, "fw:V00.02");
+  describeStatusWord(1u << 6, b, sizeof b);           EXPECT_STREQ(b, "faults:OV");
+  describeStatusWord((1u << 8) | (1u << 11), b, sizeof b); EXPECT_STREQ(b, "faults:CHG-LT,CHG-OCLOCK");
+  describeStatusWord(0x0103, b, sizeof b);            EXPECT_STREQ(b, "fw:V01.03");
+  for (size_t cap = 0; cap < 40; cap++) {              // never overruns, even for tiny buffers (ASan)
+    std::vector<char> v(cap + 4, 'x');
+    size_t n = describeStatusWord(0x0FC0, v.data(), cap);
+    if (cap) EXPECT_LT(n, cap);
+    for (size_t i = cap; i < v.size(); i++) EXPECT_EQ(v[i], 'x');
+  }
+}
+
 TEST(Decoder, KnownButIgnoredChannelIsSkipped) {
   FrameSpec s;   // 0x71 accelerometer (6 bytes) between our fields
   s.payload = cat({entry(0, 0x71, {1, 2, 3, 4, 5, 6}), entry(0, IPSO_SOC, {42})});

@@ -51,6 +51,7 @@ constexpr size_t   MAX_TX_FRAME    = 1 /*wakeup*/ + MAX_FRAME;
 
 // IPSO channel ids as carried inside sensor data payloads (RAK lib: id = IPSO object id - 3200).
 constexpr uint8_t  IPSO_TEMPERATURE = 0x67;   // 3303. Present in RAK table; NOT confirmed to be reported by RAK9154.
+constexpr uint8_t  IPSO_BATT_STATUS = 0xF3;   // 2 bytes. RAK's RAK9154 payload decoder: battery fault bitfield OR battery FW version
 constexpr uint8_t  IPSO_CAPACITY    = 0xB8;   // 3384, 1 byte, percent
 constexpr uint8_t  IPSO_DC_CURRENT  = 0xB9;   // 3385, 2 bytes, signed mA
 constexpr uint8_t  IPSO_DC_VOLTAGE  = 0xBA;   // 3386, 2 bytes, unit 10 mV
@@ -146,9 +147,21 @@ struct Reading {
   bool     hasCurrent = false;  int32_t  current_mA = 0;
   bool     hasSoc     = false;  uint8_t  soc = 0;
   bool     hasTemp    = false;  int16_t  temp_decideg = 0;   // 0.1 degC, IPSO temperature convention, UNVERIFIED
+  // 0xF3 entries (up to 2 kept). Per RAK's RAK9154 payload decoder the same id carries both the fault bitfield and the
+  // battery firmware version, told apart only by the channel byte, which is not documented for the faults. So both
+  // are stored raw with their channel and classified by describeStatusWord() for display only.
+  uint8_t  statusCount = 0;
+  uint8_t  statusChannel[2] = {0, 0};
+  uint16_t statusValue[2]   = {0, 0};
   uint8_t  unknownIds = 0;      // entries with an IPSO id this driver cannot size (walk stops there)
   uint8_t  rejected   = 0;      // entries decoded but discarded as implausible
 };
+
+// Human readable text for a 0xF3 value. Bits 6..11 are fault flags (RAK docs: 6 over-voltage, 7 charge over-current,
+// 8 charge low-temp, 9 charge high-temp, 10 charge short-circuit, 11 charge over-current lock; 0-5 and 12-15 reserved).
+// A word that has any bit outside 6..11 cannot be a fault word, so it is shown as a firmware version "Vhh.ll"
+// (RAK example: 0x0002 -> V00.02). A word of 0 means "no faults". Heuristic: UNVERIFIED on a real probe.
+size_t describeStatusWord(uint16_t value, char* out, size_t cap);
 
 enum class DecodeStatus : uint8_t { OK = 0, NOT_DATA, MALFORMED };
 

@@ -189,6 +189,11 @@ void RAK9154Battery::applyReading(const Frame& f, const Reading& r, uint32_t now
   if (r.hasCurrent) { _haveCur  = true; _current_mA = r.current_mA; _currentAt = now; any = true; }
   if (r.hasSoc)     { _haveSoc  = true; _soc = r.soc;               _socAt     = now; any = true; }
   if (r.hasTemp)    { _haveTemp = true; _temp_dC = r.temp_decideg;  _tempAt    = now; any = true; }
+  if (r.statusCount) {
+    _extraCount = r.statusCount;
+    for (uint8_t i = 0; i < r.statusCount; i++) { _extraCh[i] = r.statusChannel[i]; _extraVal[i] = r.statusValue[i]; }
+    _extraAt = now;
+  }
   if (!any) return;
 
   _stats.okFrames++;
@@ -259,6 +264,22 @@ size_t RAK9154Battery::formatInfo(char* out, size_t cap) const {
           (unsigned)_prov.sw[0], (unsigned)_prov.sw[1], (unsigned)_prov.sw[2], (unsigned)_pid,
           (unsigned)_prov.sensorCount);
     for (uint8_t i = 0; i < _prov.sensorCount && i < sizeof(_prov.ipso); i++) o.add(" %02X", (unsigned)_prov.ipso[i]);
+  }
+  return o.used(out);
+}
+
+size_t RAK9154Battery::formatExtra(char* out, size_t cap) const {
+  if (cap == 0) return 0;
+  Out o(out, cap);
+  if (_extraCount == 0) {
+    o.add("RAK9154 no 0xF3 battery status words received yet");
+  } else {
+    o.add("RAK9154 %us ago:", (unsigned)((uint32_t)(_clock() - _extraAt) / 1000));
+    for (uint8_t i = 0; i < _extraCount; i++) {
+      char d[40];
+      rak9154::describeStatusWord(_extraVal[i], d, sizeof d);
+      o.add(" ch%02X=%04X(%s)", (unsigned)_extraCh[i], (unsigned)_extraVal[i], d);
+    }
   }
   return o.used(out);
 }

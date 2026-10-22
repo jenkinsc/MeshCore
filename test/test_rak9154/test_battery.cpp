@@ -314,6 +314,10 @@ TEST(BatteryText, StatusInfoRawAreBoundedAndSensible) {
   EXPECT_LT(n, 160u);
   EXPECT_NE(std::string(buf).find("7E"), std::string::npos);
 
+  n = r.b.formatExtra(buf, sizeof buf);
+  EXPECT_LT(n, 150u);
+  EXPECT_NE(std::string(buf).find("0xF3"), std::string::npos) << buf;   // none received in this fixture
+
   n = r.b.formatDiag(buf, sizeof buf);
   st = buf;
   EXPECT_LT(n, 150u);
@@ -336,8 +340,9 @@ TEST(BatteryText, StatusInfoRawAreBoundedAndSensible) {
     size_t c = r.b.formatRaw(v.data(), cap);
     size_t d = r.b.formatDiag(v.data(), cap);
     size_t e = r.b.formatRaw(v.data(), cap, 20);
-    if (cap > 0) { EXPECT_LT(a, cap); EXPECT_LT(b2, cap); EXPECT_LT(c, cap); EXPECT_LT(d, cap); EXPECT_LT(e, cap); }
-    else { EXPECT_EQ(a, 0u); EXPECT_EQ(b2, 0u); EXPECT_EQ(c, 0u); EXPECT_EQ(d, 0u); EXPECT_EQ(e, 0u); }
+    size_t x = r.b.formatExtra(v.data(), cap);
+    if (cap > 0) { EXPECT_LT(a, cap); EXPECT_LT(b2, cap); EXPECT_LT(c, cap); EXPECT_LT(d, cap); EXPECT_LT(e, cap); EXPECT_LT(x, cap); }
+    else { EXPECT_EQ(a, 0u); EXPECT_EQ(b2, 0u); EXPECT_EQ(c, 0u); EXPECT_EQ(d, 0u); EXPECT_EQ(e, 0u); EXPECT_EQ(x, 0u); }
     for (size_t i = cap; i < v.size(); i++) EXPECT_EQ(v[i], 'x') << "overrun at cap " << cap;
   }
 }

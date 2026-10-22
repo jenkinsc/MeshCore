@@ -7,6 +7,8 @@
 
 #include "RAK9154Protocol.h"
 
+#include <stdio.h>
+
 #include <string.h>
 
 namespace rak9154 {
@@ -40,7 +42,7 @@ uint8_t ipsoValueSize(uint8_t ipso) {
     case 0x00: case 0x01: case 0x66: case 0x68: case 0x78: case 0xB8:
       return 1;
     case 0x02: case 0x03: case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16:
-    case 0x17: case 0x18: case 0x19: case 0x1A: case 0x67: case 0x69: case 0x70: case 0x73: case 0x74:
+    case 0x17: case 0x18: case 0x19: case 0x1A: case 0x67: case 0x69: case 0x70: case 0xF3: case 0x73: case 0x74:
     case 0x77: case 0x7D: case 0x8A: case 0x92: case 0x93: case 0xB9: case 0xBA: case 0xBC: case 0xBE:
     case 0xBF: case 0xC0: case 0xC1: case 0xC2: case 0xC3: case 0xE3: case 0xE4: case 0xE5: case 0xE9:
       return 2;
@@ -199,6 +201,23 @@ static uint16_t readU16(const uint8_t* p, bool bigEndian) {
   return bigEndian ? (uint16_t)(((uint16_t)p[0] << 8) | p[1]) : (uint16_t)(((uint16_t)p[1] << 8) | p[0]);
 }
 
+size_t describeStatusWord(uint16_t value, char* out, size_t cap) {
+  if (out == nullptr || cap == 0) return 0;
+  static const char* const names[6] = {"OV", "CHG-OC", "CHG-LT", "CHG-HT", "CHG-SC", "CHG-OCLOCK"};
+  int n;
+  if (value == 0) {
+    n = snprintf(out, cap, "faults:none");
+  } else if ((value & ~0x0FC0u) == 0) {
+    n = snprintf(out, cap, "faults:");
+    for (int bit = 6; bit <= 11 && n > 0 && (size_t)n < cap; bit++)
+      if (value & (1u << bit)) n += snprintf(out + n, cap - (size_t)n, "%s%s", n > 7 ? "," : "", names[bit - 6]);
+  } else {
+    n = snprintf(out, cap, "fw:V%02u.%02u", (unsigned)(value >> 8), (unsigned)(value & 0xFF));
+  }
+  if (n < 0) { out[0] = 0; return 0; }
+  return (size_t)n < cap ? (size_t)n : cap - 1;
+}
+
 DecodeStatus decodeSensorData(const Frame& f, const DecodeOptions& opt, Reading& r) {
   if (f.hubType != HUB_SENDDATA) return DecodeStatus::NOT_DATA;
   const bool big = (f.flag == FLAG_RSP) ? opt.responseBigEndian : opt.reportBigEndian;
@@ -244,6 +263,13 @@ DecodeStatus decodeSensorData(const Frame& f, const DecodeOptions& opt, Reading&
         }
         break;
       }
+      case IPSO_BATT_STATUS:
+        if (r.statusCount < 2) {
+          r.statusChannel[r.statusCount] = f.data[off];
+          r.statusValue[r.statusCount]   = readU16(v, big);
+          r.statusCount++;
+        }
+        break;
       default:
         break;                                 // known size, not interesting
     }
