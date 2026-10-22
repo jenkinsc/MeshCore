@@ -54,6 +54,7 @@ public:
   void write(const uint8_t* data, size_t len) override;
   int  read() override;
   void service() override;
+  uint32_t rxErrors() const override { return _stopErrors + _overflows + _storms; }
 
   uint32_t overflowCount() const { return _overflows; }
   uint32_t stormCount() const { return _storms; }

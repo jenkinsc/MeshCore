@@ -314,14 +314,30 @@ TEST(BatteryText, StatusInfoRawAreBoundedAndSensible) {
   EXPECT_LT(n, 160u);
   EXPECT_NE(std::string(buf).find("7E"), std::string::npos);
 
+  n = r.b.formatDiag(buf, sizeof buf);
+  st = buf;
+  EXPECT_LT(n, 150u);
+  EXPECT_NE(st.find("rxfr:"), std::string::npos) << st;
+  EXPECT_NE(st.find("req:"), std::string::npos) << st;
+  EXPECT_GT(r.b.stats().rxBytes, 0u);
+  EXPECT_GT(r.b.stats().rxFrames, 0u);
+
+  // paging through a captured frame: offset moves the window, a far offset is reported, not crashed on
+  n = r.b.formatRaw(buf, 160, 5);
+  EXPECT_NE(std::string(buf).find("+5"), std::string::npos) << buf;
+  r.b.formatRaw(buf, 160, 5000);
+  EXPECT_NE(std::string(buf).find("past the end"), std::string::npos) << buf;
+
   // every capacity, including degenerate ones, stays inside its buffer (run under ASan)
   for (size_t cap = 0; cap < 200; cap++) {
     std::vector<char> v(cap + 8, 'x');
     size_t a = r.b.formatStatus(v.data(), cap);
     size_t b2 = r.b.formatInfo(v.data(), cap);
     size_t c = r.b.formatRaw(v.data(), cap);
-    if (cap > 0) { EXPECT_LT(a, cap); EXPECT_LT(b2, cap); EXPECT_LT(c, cap); }
-    else { EXPECT_EQ(a, 0u); EXPECT_EQ(b2, 0u); EXPECT_EQ(c, 0u); }
+    size_t d = r.b.formatDiag(v.data(), cap);
+    size_t e = r.b.formatRaw(v.data(), cap, 20);
+    if (cap > 0) { EXPECT_LT(a, cap); EXPECT_LT(b2, cap); EXPECT_LT(c, cap); EXPECT_LT(d, cap); EXPECT_LT(e, cap); }
+    else { EXPECT_EQ(a, 0u); EXPECT_EQ(b2, 0u); EXPECT_EQ(c, 0u); EXPECT_EQ(d, 0u); EXPECT_EQ(e, 0u); }
     for (size_t i = cap; i < v.size(); i++) EXPECT_EQ(v[i], 'x') << "overrun at cap " << cap;
   }
 }

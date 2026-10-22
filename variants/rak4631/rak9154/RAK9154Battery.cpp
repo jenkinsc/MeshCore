@@ -127,6 +127,7 @@ void RAK9154Battery::drainRx(uint32_t now) {
   int c;
   while (count < MAX_RX_PER_LOOP && (c = _t.read()) >= 0) {
     count++;
+    _stats.rxBytes++;
     if (_asm.push((uint8_t)c, now)) {
       handleCandidate(_asm.data(), _asm.size(), now);
       _asm.clearFrame();
@@ -136,6 +137,7 @@ void RAK9154Battery::drainRx(uint32_t now) {
 }
 
 void RAK9154Battery::handleCandidate(const uint8_t* data, size_t len, uint32_t now) {
+  _stats.rxFrames++;
 #if RAK9154_RAW_CAPTURE
   _rawLen = len < sizeof(_raw) ? len : sizeof(_raw);
   memcpy(_raw, data, _rawLen);
@@ -261,17 +263,32 @@ size_t RAK9154Battery::formatInfo(char* out, size_t cap) const {
   return o.used(out);
 }
 
-size_t RAK9154Battery::formatRaw(char* out, size_t cap) const {
+size_t RAK9154Battery::formatDiag(char* out, size_t cap) const {
+  if (cap == 0) return 0;
+  Out o(out, cap);
+  o.add("RAK9154 req:%u prov:%u rxfr:%u rxb:%u asm:%u uart:%u to:%u/%u st:%s pid:%u wait:%u",
+        (unsigned)_stats.requestsSent, (unsigned)_stats.provisions, (unsigned)_stats.rxFrames,
+        (unsigned)_stats.rxBytes, (unsigned)_stats.framingErrors, (unsigned)_t.rxErrors(),
+        (unsigned)_consecFail, (unsigned)_cfg.reprovisionAfter, _state == ST_POLLING ? "POLL" : "PROV",
+        (unsigned)_pid, (unsigned)_awaiting);
+  return o.used(out);
+}
+
+size_t RAK9154Battery::formatRaw(char* out, size_t cap, size_t offset) const {
   if (cap == 0) return 0;
   Out o(out, cap);
 #if RAK9154_RAW_CAPTURE
   if (_rawLen == 0) {
     o.add("RAK9154 no frame received yet");
+  } else if (offset >= _rawLen) {
+    o.add("RAK9154 raw %uB: offset %u is past the end", (unsigned)_rawLen, (unsigned)offset);
   } else {
-    o.add("RAK9154 raw %uB %us ago:", (unsigned)_rawLen, (unsigned)((uint32_t)(_clock() - _rawAt) / 1000));
-    for (size_t i = 0; i < _rawLen && o.left > 5; i++) o.add(" %02X", (unsigned)_raw[i]);
+    o.add("RAK9154 raw %uB +%u %us ago:", (unsigned)_rawLen, (unsigned)offset,
+          (unsigned)((uint32_t)(_clock() - _rawAt) / 1000));
+    for (size_t i = offset; i < _rawLen && o.left > 5; i++) o.add(" %02X", (unsigned)_raw[i]);
   }
 #else
+  (void)offset;
   o.add("RAK9154 raw capture disabled");
 #endif
   return o.used(out);

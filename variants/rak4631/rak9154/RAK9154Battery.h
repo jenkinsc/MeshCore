@@ -29,6 +29,12 @@
 #ifndef RAK9154_REPORT_BIG_ENDIAN
 #define RAK9154_REPORT_BIG_ENDIAN 1           // UNVERIFIED byte order of 16-bit values in unsolicited reports
 #endif
+#ifndef RAK9154_RESPONSE_TIMEOUT_MS
+#define RAK9154_RESPONSE_TIMEOUT_MS 1500      // how long a request may stay unanswered before it counts as a timeout
+#endif
+#ifndef RAK9154_REPROVISION_AFTER
+#define RAK9154_REPROVISION_AFTER 3           // consecutive timeouts before starting over with a provision BOOT
+#endif
 #ifndef RAK9154_RAW_CAPTURE
 #define RAK9154_RAW_CAPTURE 1                 // keep the last received candidate frame for "rak9154 raw"
 #endif
@@ -55,14 +61,15 @@ public:
   virtual void   write(const uint8_t* data, size_t len) = 0;   // blocking, bounded; line is released afterwards
   virtual int    read() = 0;                                   // next received byte or -1; never blocks
   virtual void   service() {}                                  // periodic housekeeping (e.g. re-arm after an RX storm)
+  virtual uint32_t rxErrors() const { return 0; }              // low-level receive faults (bad stop bit, overflow, storm)
 };
 
 struct Config {
   uint32_t pollIntervalMs     = RAK9154_POLL_INTERVAL_MS;
   uint32_t staleMs            = RAK9154_STALE_MS;
-  uint32_t responseTimeoutMs  = 1500;      // how long a request may stay unanswered before it counts as a timeout
+  uint32_t responseTimeoutMs  = RAK9154_RESPONSE_TIMEOUT_MS;
   uint32_t firstPollDelayMs   = 3000;      // give the probe time to boot after we start
-  uint8_t  reprovisionAfter   = 3;         // consecutive timeouts before we start over with a provision BOOT
+  uint8_t  reprovisionAfter   = RAK9154_REPROVISION_AFTER;
   DecodeOptions decode;
   Config() {
     decode.responseBigEndian = RAK9154_RSP_BIG_ENDIAN != 0;
@@ -81,6 +88,8 @@ struct Stats {
   uint32_t rangeRejects     = 0;   // decoded but implausible values (often a wrong byte order)
   uint32_t provisions       = 0;   // probe announcements answered
   uint32_t otherFrames      = 0;   // valid frames of a kind we do not use
+  uint32_t rxFrames         = 0;   // candidate frames delivered by the assembler (valid or not)
+  uint32_t rxBytes          = 0;   // raw bytes read from the transport
   uint32_t maxTxMs          = 0;   // longest transmit, i.e. longest time loop() was blocked by this driver
 };
 
@@ -135,7 +144,8 @@ public:
   // Text for the CLI. All write at most `cap` bytes including the terminator and return the length.
   size_t formatStatus(char* out, size_t cap) const;
   size_t formatInfo(char* out, size_t cap) const;
-  size_t formatRaw(char* out, size_t cap) const;
+  size_t formatDiag(char* out, size_t cap) const;
+  size_t formatRaw(char* out, size_t cap, size_t offset = 0) const;   // hex of the last received frame from `offset`
 
 private:
   enum State : uint8_t { ST_PROVISIONING, ST_POLLING };

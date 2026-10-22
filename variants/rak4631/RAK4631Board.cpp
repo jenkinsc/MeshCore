@@ -3,6 +3,7 @@
 #include "nrf_gpio.h"
 
 #include "RAK4631Board.h"
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef ETHERNET_ENABLED
@@ -72,7 +73,7 @@ void RAK4631Board::begin() {
 }
 
 #ifdef RAK9154_BATTERY
-// CLI: "rak9154" / "rak9154 status" | "poll" | "info" | "raw". Reply buffers are 160 bytes; stay below.
+// CLI: "rak9154" / "rak9154 status" | "diag" | "poll" | "info" | "raw [offset]". Reply buffers are 160 bytes; stay below.
 bool RAK4631Board::handleCommand(const char* command, uint32_t /*sender_timestamp*/, char* reply) {
   if (strncmp(command, "rak9154", 7) != 0 || (command[7] != 0 && command[7] != ' ')) return false;
   const char* arg = command + 7;
@@ -86,10 +87,12 @@ bool RAK4631Board::handleCommand(const char* command, uint32_t /*sender_timestam
     strcpy(reply, "RAK9154 poll requested");
   } else if (strcmp(arg, "info") == 0) {
     rak9154.formatInfo(reply, REPLY_MAX);
-  } else if (strcmp(arg, "raw") == 0) {
-    rak9154.formatRaw(reply, REPLY_MAX);
+  } else if (strncmp(arg, "raw", 3) == 0 && (arg[3] == 0 || arg[3] == ' ')) {
+    rak9154.formatRaw(reply, REPLY_MAX, (size_t)atoi(arg + 3));    // "raw" or "raw <byte offset>"
+  } else if (strcmp(arg, "diag") == 0) {
+    rak9154.formatDiag(reply, REPLY_MAX);
   } else {
-    strcpy(reply, "usage: rak9154 [status|poll|info|raw]");
+    strcpy(reply, "usage: rak9154 [status|diag|poll|info|raw [offset]]");
   }
   return true;
 }
