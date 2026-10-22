@@ -1,3 +1,11 @@
+# MeshCore for RAK4631 + RAK9154 Solar Battery
+
+**A MeshCore repeater build that reports the real battery voltage, charge, current and temperature of a RAK9154 Solar Battery**
+(instead of `0.0 V`) on the RAK4631 / WisMesh repeater. Keywords: RAK9154, RAK4631, WisMesh, WisBlock, solar repeater,
+battery telemetry. This is a fork of [MeshCore](https://github.com/meshcore-dev/MeshCore); everything else is upstream.
+**[Jump to what this adds, status, install and how to keep it updated](#-this-fork-rak9154-solar-battery-telemetry-for-the-rak4631-repeater)**
+ | [Latest firmware](../../releases)
+
 ## About MeshCore
 
 MeshCore is a lightweight, portable C++ library that enables multi-hop packet routing for embedded projects using LoRa and other packet radios. It is designed for developers who want to create resilient, decentralized communication networks that work without the internet.
