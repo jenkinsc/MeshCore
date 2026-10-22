@@ -823,7 +823,7 @@ separate and still unverified here):</p>
 </tbody>
 </table>
 <p>The two <code>0xF3</code> entries are told apart only by their channel byte, and RAK documents the channel only for the FW
-version (example <code>0x1A</code>). The driver stores both raw with their channels; <code>rak9154 extra</code> shows them, labelling a
+version (example <code>0x1A</code>). Observed on a real probe: <code>0x19</code> = faults (<code>0000</code>, none) and <code>0x1A</code> = firmware (<code>0004</code> = V00.04). The driver stores both raw with their channels; <code>rak9154 extra</code> shows them, labelling a
 word with any bit outside 6..11 as a firmware version and 0 as "no faults". That labelling is a heuristic until it is
 seen on a real probe. Not published over the mesh yet.</p>
 <h2 id="what-appears-in-the-apps-telemetry">What appears in the app's telemetry</h2>
