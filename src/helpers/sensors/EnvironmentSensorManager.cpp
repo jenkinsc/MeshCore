@@ -681,6 +681,11 @@ bool EnvironmentSensorManager::begin() {
 // initialized.
 // ============================================================
 
+#ifdef RAK9154_BATTERY
+// Defined in variants/rak4631/RAK4631Board.cpp: adds the RAK9154 state of charge / current / battery temperature.
+void rak9154_add_telemetry(CayenneLPP& telemetry, uint8_t self_channel, uint8_t extra_channel);
+#endif
+
 bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, CayenneLPP& telemetry) {
   next_available_channel = TELEM_CHANNEL_SELF + 1;
 
@@ -694,6 +699,12 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
       next_available_channel++;
     }
   }
+
+#ifdef RAK9154_BATTERY
+  if (requester_permissions & TELEM_PERM_BASE) {   // battery data is 'base' telemetry, like the voltage on channel 1
+    rak9154_add_telemetry(telemetry, TELEM_CHANNEL_SELF, next_available_channel++);
+  }
+#endif
 
   return true;
 }

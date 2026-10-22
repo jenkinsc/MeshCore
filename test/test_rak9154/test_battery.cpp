@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "RAK9154Battery.h"
+#include "RAK9154Telemetry.h"
 #include "fixtures.h"
 
 using namespace rak9154;
@@ -187,6 +188,54 @@ TEST(Battery, RepeatedAnnouncementsAreNotAnsweredWhileDataIsFresh) {
   r.t.inject(provisionAnnouncement({{0, IPSO_VOLT}, {0, IPSO_CUR}, {0, IPSO_SOC}}));
   r.run(100);
   EXPECT_GT(r.b.stats().provisions, provBefore);
+}
+
+struct RecLpp {
+  struct Rec { std::string kind; int ch; double v; };
+  std::vector<Rec> r;
+  void addPercentage(uint8_t ch, uint32_t v) { r.push_back({"pct", ch, (double)v}); }
+  void addCurrent(uint8_t ch, float v) { r.push_back({"cur", ch, v}); }
+  void addTemperature(uint8_t ch, float v) { r.push_back({"temp", ch, v}); }
+};
+
+TEST(Telemetry, PublishesSocCurrentAndBatteryTemperatureOnTheRightChannels) {
+  Rig r;
+  bringUp(r);                                          // typicalResponse: 12.31 V, 185 mA, 94 %
+  RecLpp l;
+  rak9154::appendTelemetry(r.b, l, 1, 3);
+  ASSERT_GE(l.r.size(), 2u);
+  EXPECT_EQ(l.r[0].kind, "pct"); EXPECT_EQ(l.r[0].ch, 1); EXPECT_EQ(l.r[0].v, 94);
+  EXPECT_EQ(l.r[1].kind, "cur"); EXPECT_EQ(l.r[1].ch, 1); EXPECT_NEAR(l.r[1].v, 0.185, 1e-6);
+  for (auto& x : l.r) if (x.kind == "temp") EXPECT_EQ(x.ch, 3);
+}
+
+TEST(Telemetry, NothingIsPublishedWithoutData) {
+  Rig r;
+  r.b.begin();
+  RecLpp l;
+  rak9154::appendTelemetry(r.b, l, 1, 2);
+  EXPECT_TRUE(l.r.empty());
+}
+
+TEST(Telemetry, DischargeIsClampedToZeroBecauseLppCurrentIsUnsigned) {
+  Rig r;
+  bringUp(r);
+  r.t.inject(typicalResponse(false, 1231, (uint16_t)-150, 94));    // -150 mA
+  r.run(100);
+  RecLpp l;
+  rak9154::appendTelemetry(r.b, l, 1, 2);
+  bool saw = false;
+  for (auto& x : l.r) if (x.kind == "cur") { saw = true; EXPECT_EQ(x.v, 0.0); }
+  EXPECT_TRUE(saw);
+}
+
+TEST(Telemetry, StaleValuesAreDropped) {
+  Rig r;
+  bringUp(r);
+  r.run(400000, 1000);                                 // probe goes silent for > 5 min
+  RecLpp l;
+  rak9154::appendTelemetry(r.b, l, 1, 2);
+  EXPECT_TRUE(l.r.empty());
 }
 
 TEST(Battery, SilenceNeverBlocksOrLoopsForever) {

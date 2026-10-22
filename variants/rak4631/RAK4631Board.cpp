@@ -5,6 +5,10 @@
 #include "RAK4631Board.h"
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef RAK9154_BATTERY
+#include <CayenneLPP.h>
+#include <rak9154/RAK9154Telemetry.h>
+#endif
 #include <string.h>
 
 #ifdef ETHERNET_ENABLED
@@ -74,6 +78,12 @@ void RAK4631Board::begin() {
 }
 
 #ifdef RAK9154_BATTERY
+extern RAK4631Board board;   // defined in target.cpp
+
+void rak9154_add_telemetry(CayenneLPP& telemetry, uint8_t self_channel, uint8_t extra_channel) {
+  rak9154::appendTelemetry(board.rak9154Battery(), telemetry, self_channel, extra_channel);
+}
+
 // CLI: "rak9154" / "rak9154 status" | "diag" | "poll" | "info" | "raw [offset]". Reply buffers are 160 bytes; stay below.
 bool RAK4631Board::handleCommand(const char* command, uint32_t /*sender_timestamp*/, char* reply) {
   if (strncmp(command, "rak9154", 7) != 0 || (command[7] != 0 && command[7] != ' ')) return false;
