@@ -34,6 +34,13 @@
 #define RAK9154_BAUD 9600
 #endif
 
+// Idle bit times inserted after every transmitted byte (on top of the stop bit). RAK's own half-duplex serial class
+// releases the line and waits at least one extra bit between bytes (~12 bit times per byte), which a small probe MCU
+// may need to store each byte; back-to-back bytes (0) are also valid UART. Adjustable at runtime: "rak9154 gap <n>".
+#ifndef RAK9154_TX_GAP_BITS
+#define RAK9154_TX_GAP_BITS 2
+#endif
+
 // CPU cycles between the falling edge on the pin and the moment the ISR body starts running (interrupt entry +
 // core GPIOTE dispatcher). Used to centre the first sample. Tune with a scope if frames fail checksum.
 #ifndef RAK9154_RX_LATENCY_CYCLES
@@ -54,6 +61,8 @@ public:
   void write(const uint8_t* data, size_t len) override;
   int  read() override;
   void service() override;
+  void setTxGapBits(uint8_t bits) override { _gapBits = bits > 16 ? 16 : bits; }
+  uint8_t txGapBits() const override { return _gapBits; }
   uint32_t rxErrors() const override { return _stopErrors + _overflows + _storms; }
 
   uint32_t overflowCount() const { return _overflows; }
@@ -81,6 +90,7 @@ private:
   uint8_t  _pin;
   uint32_t _nrfPin = 0;
   uint32_t _bitCycles = 0;
+  uint8_t  _gapBits = RAK9154_TX_GAP_BITS;
   bool     _ready = false;
 };
 

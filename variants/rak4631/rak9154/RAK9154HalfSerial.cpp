@@ -149,7 +149,10 @@ void RAK9154HalfSerial::write(const uint8_t* data, size_t len) {
   nrf_gpio_cfg_output(_nrfPin);
 
   uint32_t t = cycles() + _bitCycles;                           // one idle bit before the first start bit
-  for (size_t i = 0; i < len; i++) txByte(data[i], t, _bitCycles);
+  for (size_t i = 0; i < len; i++) {
+    txByte(data[i], t, _bitCycles);
+    t += (uint32_t)_gapBits * _bitCycles;                         // extra idle time between bytes (line stays high)
+  }
   waitUntil(t);                                                 // finish the last stop bit
 
   nrf_gpio_cfg_input(_nrfPin, NRF_GPIO_PIN_PULLUP);             // release the line to the probe

@@ -61,6 +61,8 @@ public:
   virtual void   write(const uint8_t* data, size_t len) = 0;   // blocking, bounded; line is released afterwards
   virtual int    read() = 0;                                   // next received byte or -1; never blocks
   virtual void   service() {}                                  // periodic housekeeping (e.g. re-arm after an RX storm)
+  virtual void   setTxGapBits(uint8_t) {}                      // idle bit times inserted between transmitted bytes
+  virtual uint8_t txGapBits() const { return 0; }
   virtual uint32_t rxErrors() const { return 0; }              // low-level receive faults (bad stop bit, overflow, storm)
 };
 
@@ -134,6 +136,8 @@ public:
   rak9154::RAK9154Telemetry snapshot() const;
 
   // ---- control / diagnostics ----------------------------------------------------------------------
+  void setTxGapBits(uint8_t bits) { _t.setTxGapBits(bits); }
+  uint8_t getTxGapBits() const { return _t.txGapBits(); }
   void requestPollNow();                        // next loop() sends a request (rate limited to 1/s)
   void setPollIntervalMs(uint32_t ms);          // clamped to 15 s .. 60 s
   uint32_t getPollIntervalMs() const { return _cfg.pollIntervalMs; }
@@ -175,6 +179,7 @@ private:
   uint32_t _lastForced = 0;
   bool     _haveForced = false;
   uint8_t  _consecFail = 0;
+  uint16_t _provStreak = 0;        // provision announcements answered since the last good data frame (back-off input)
   bool     _everGood = false;
 
   bool     _haveVolt = false;     uint32_t _voltage_mV = 0;     uint32_t _voltageAt = 0;

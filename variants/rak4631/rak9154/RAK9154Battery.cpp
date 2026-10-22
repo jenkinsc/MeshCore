@@ -164,7 +164,16 @@ void RAK9154Battery::handleCandidate(const uint8_t* data, size_t len, uint32_t n
     _awaiting = false;
     _consecFail = 0;
     _stats.provisions++;
-    _nextPollAt = _clock() + POST_PROVISION_MS;
+    // A probe that keeps announcing itself after we answered did not accept the answer. Do not hammer it: ask for
+    // data quickly the first few times, then back off (2 s, 4 s, ... up to the poll interval).
+    if (_provStreak < 0xFFFF) _provStreak++;
+    uint32_t wait = POST_PROVISION_MS;
+    if (_provStreak > 3) {
+      const uint32_t shift = _provStreak - 4 > 5 ? 5 : (uint32_t)(_provStreak - 4);
+      wait = 2000UL << shift;
+      if (wait > _cfg.pollIntervalMs) wait = _cfg.pollIntervalMs;
+    }
+    _nextPollAt = _clock() + wait;
     return;
   }
 
@@ -197,6 +206,7 @@ void RAK9154Battery::applyReading(const Frame& f, const Reading& r, uint32_t now
   if (!any) return;
 
   _stats.okFrames++;
+  _provStreak = 0;
   _everGood = true;
   _consecFail = 0;
   if (f.source != PID_MASTER && f.source != PID_UNKNOWN) _pid = f.source;   // follow the probe's own address
@@ -287,11 +297,11 @@ size_t RAK9154Battery::formatExtra(char* out, size_t cap) const {
 size_t RAK9154Battery::formatDiag(char* out, size_t cap) const {
   if (cap == 0) return 0;
   Out o(out, cap);
-  o.add("RAK9154 req:%u prov:%u rxfr:%u rxb:%u asm:%u uart:%u to:%u/%u st:%s pid:%u wait:%u",
+  o.add("RAK9154 req:%u prov:%u rxfr:%u rxb:%u asm:%u uart:%u to:%u/%u st:%s pid:%u wait:%u gap:%u pstreak:%u",
         (unsigned)_stats.requestsSent, (unsigned)_stats.provisions, (unsigned)_stats.rxFrames,
         (unsigned)_stats.rxBytes, (unsigned)_stats.framingErrors, (unsigned)_t.rxErrors(),
         (unsigned)_consecFail, (unsigned)_cfg.reprovisionAfter, _state == ST_POLLING ? "POLL" : "PROV",
-        (unsigned)_pid, (unsigned)_awaiting);
+        (unsigned)_pid, (unsigned)_awaiting, (unsigned)_t.txGapBits(), (unsigned)_provStreak);
   return o.used(out);
 }
 

@@ -206,14 +206,29 @@ TEST(HalfSerialTx, WaveformDecodesToTheSentBytesWithCorrectBitTiming) {
   EXPECT_LE(err, 24u) << "bit edges must be within ~0.4% of ideal (cycles)";
 }
 
-TEST(HalfSerialTx, FrameDurationMatches9600Baud) {
-  Rig r; ASSERT_TRUE(r.up());
-  const uint8_t msg[13] = {0xFF, 0x7E};
-  uint32_t t0 = sim::cyc;
-  r.hs.write(msg, sizeof msg);
-  double ms = (double)(sim::cyc - t0) / 64000.0;
-  EXPECT_NEAR(ms, 13 * 10 * 1000.0 / 9600 + 2 * 1000.0 / 9600, 0.6);   // 13 bytes + idle/settle bits
-  EXPECT_LT(ms, 16.0);
+TEST(HalfSerialTx, FrameDurationMatches9600BaudForSeveralGaps) {
+  for (unsigned gap : {0u, 1u, 2u, 5u}) {
+    Rig r; ASSERT_TRUE(r.up());
+    r.hs.setTxGapBits((uint8_t)gap);
+    ASSERT_EQ(r.hs.txGapBits(), gap);
+    const uint8_t msg[13] = {0xFF, 0x7E};
+    uint32_t t0 = sim::cyc;
+    sim::txLog.clear();
+    r.hs.write(msg, sizeof msg);
+    double ms = (double)(sim::cyc - t0) / 64000.0;
+    EXPECT_NEAR(ms, (13.0 * (10 + gap) + 2) * 1000.0 / 9600, 0.8) << "gap " << gap;
+    uint32_t err = 0;
+    auto got = decodeTx(sim::txLog, BIT, &err);
+    ASSERT_EQ(got.size(), 13u);
+    EXPECT_EQ(got[0], 0xFF); EXPECT_EQ(got[1], 0x7E);
+  }
+}
+
+TEST(HalfSerialTx, DefaultGapMatchesBuildFlagAndIsClamped) {
+  Rig r;
+  EXPECT_EQ(r.hs.txGapBits(), (unsigned)RAK9154_TX_GAP_BITS);
+  r.hs.setTxGapBits(200);
+  EXPECT_EQ(r.hs.txGapBits(), 16u);
 }
 
 TEST(HalfSerialTx, ReceiverIsDetachedWhileTransmittingAndRearmedAfter) {

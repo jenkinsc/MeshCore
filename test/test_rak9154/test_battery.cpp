@@ -149,6 +149,26 @@ TEST(Battery, DisconnectedProbeTimesOutAndReprovisions) {
   EXPECT_FALSE(r.b.hasValidTelemetry());
 }
 
+TEST(Battery, ProbeThatNeverAcceptsProvisioningDoesNotCauseATightLoop) {
+  // Real-hardware observation: the probe answered EVERY request with a new provision announcement. The driver used to
+  // answer each one 300 ms later, i.e. ~2 requests/s forever (259 in a few minutes).
+  Rig r;
+  ASSERT_TRUE(r.b.begin());
+  size_t seen = 0, requests = 0;
+  for (uint32_t ms = 0; ms < 600000; ms += 50) {
+    g_now += 50;
+    r.b.loop();
+    while (seen < r.t.tx.size()) {                    // a REQUEST (not our provision response) -> announces itself again
+      const Bytes& f = r.t.tx[seen++];
+      if (f.size() == 13) { requests++; r.t.inject(provisionAnnouncement({{0, IPSO_VOLT}, {0, IPSO_CUR}, {0, IPSO_SOC}})); }
+    }
+  }
+  EXPECT_LT(requests, 40u) << "10 minutes must not produce hundreds of requests";
+  EXPECT_GT(requests, 8u) << "but it must keep trying";
+  EXPECT_GE(r.b.stats().provisions, 5u);
+  // and the first attempts still happen quickly so a probe that needs two tries is not slowed down
+}
+
 TEST(Battery, SilenceNeverBlocksOrLoopsForever) {
   Rig r;
   r.b.begin();
