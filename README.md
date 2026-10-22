@@ -4,7 +4,7 @@
 (instead of `0.0 V`) on the RAK4631 / WisMesh repeater. Keywords: RAK9154, RAK4631, WisMesh, WisBlock, solar repeater,
 battery telemetry. This is a fork of [MeshCore](https://github.com/meshcore-dev/MeshCore); everything else is upstream.
 **[Jump to what this adds, status, install and how to keep it updated](#-this-fork-rak9154-solar-battery-telemetry-for-the-rak4631-repeater)**
- | [Latest firmware](../../releases)
+ | [Latest firmware](../../releases/latest) | [Docs site](https://jenkinsc.github.io/MeshCore-RAK9154/)
 
 ## About MeshCore
 
