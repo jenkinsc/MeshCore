@@ -196,6 +196,7 @@ struct RecLpp {
   void addPercentage(uint8_t ch, uint32_t v) { r.push_back({"pct", ch, (double)v}); }
   void addCurrent(uint8_t ch, float v) { r.push_back({"cur", ch, v}); }
   void addTemperature(uint8_t ch, float v) { r.push_back({"temp", ch, v}); }
+  void addDigitalInput(uint8_t ch, uint8_t v) { r.push_back({"dig", ch, (double)v}); }
 };
 
 TEST(Telemetry, PublishesSocCurrentAndBatteryTemperatureOnTheRightChannels) {
@@ -447,4 +448,55 @@ TEST(BatteryText, StaleAndNoDataLabels) {
   g_now += 400000;
   r2.b.formatStatus(buf, sizeof buf);
   EXPECT_NE(std::string(buf).find("STALE"), std::string::npos) << buf;
+}
+
+// ---- fault byte published next to the battery temperature --------------------------------------------------------
+static Bytes responseWithF3(uint16_t faults, uint16_t fw) {
+  FrameSpec s;
+  s.flag = 1; s.seq = 7;
+  s.payload = cat({entry(0, IPSO_VOLT, u16(1231, false)), entry(0, IPSO_CUR, u16(185, false)),
+                   entry(0, IPSO_SOC, {94}), entry(0x19, 0xF3, u16(faults, false)), entry(0x1A, 0xF3, u16(fw, false))});
+  return encode(s);
+}
+
+TEST(Telemetry, FaultByteIsPublishedOnTheExtraChannelAndZeroMeansNoFaults) {
+  Rig r;
+  bringUp(r);
+  r.t.inject(responseWithF3(0x0000, 0x0004));        // what the real probe reported: no faults, firmware V00.04
+  r.run(100);
+  ASSERT_TRUE(r.b.hasFaultStatus());
+  EXPECT_EQ(r.b.getFaultBits(), 0);
+  RecLpp l;
+  rak9154::appendTelemetry(r.b, l, 1, 2);
+  int n = 0;
+  for (auto& x : l.r) if (x.kind == "dig") { n++; EXPECT_EQ(x.ch, 2); EXPECT_EQ(x.v, 0); }
+  EXPECT_EQ(n, 1);                                   // the firmware word must not be published as a fault
+}
+
+TEST(Telemetry, FaultBitsAreShiftedDownSoBitZeroIsOverVoltage) {
+  Rig r;
+  bringUp(r);
+  r.t.inject(responseWithF3((1u << 6) | (1u << 9), 0x0004));   // over-voltage + charge high-temp
+  r.run(100);
+  EXPECT_EQ(r.b.getFaultBits(), 0x09);
+  RecLpp l;
+  rak9154::appendTelemetry(r.b, l, 1, 2);
+  bool saw = false;
+  for (auto& x : l.r) if (x.kind == "dig") { saw = true; EXPECT_EQ(x.v, 9); }
+  EXPECT_TRUE(saw);
+}
+
+TEST(Telemetry, NoFaultByteWithoutAFaultWordOrWhenStale) {
+  Rig r;
+  bringUp(r);                                          // typicalResponse has no 0xF3 entries
+  EXPECT_FALSE(r.b.hasFaultStatus());
+  RecLpp l;
+  rak9154::appendTelemetry(r.b, l, 1, 2);
+  for (auto& x : l.r) EXPECT_NE(x.kind, "dig");
+
+  r.t.inject(responseWithF3(0x0000, 0x0004));
+  r.run(100);
+  ASSERT_TRUE(r.b.hasFaultStatus());
+  r.run(400000, 1000);                                 // probe goes silent for > 5 min
+  EXPECT_FALSE(r.b.hasFaultStatus());
 }

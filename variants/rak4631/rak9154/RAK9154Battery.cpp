@@ -239,6 +239,20 @@ bool    RAK9154Battery::hasStateOfCharge() const { return _haveSoc && fresh(_clo
 uint8_t RAK9154Battery::getStateOfCharge() const { return hasStateOfCharge() ? _soc : 0; }
 bool    RAK9154Battery::hasTemperature() const { return _haveTemp && fresh(_clock(), _tempAt, _cfg.staleMs); }
 float   RAK9154Battery::getTemperatureC() const { return hasTemperature() ? (float)_temp_dC / 10.0f : 0.0f; }
+// A 0xF3 word is the fault word when it is zero or uses only the documented fault bits 6..11; anything else is
+// the firmware version (e.g. 0x0004 = V00.04). The same classification drives "rak9154 extra".
+bool RAK9154Battery::hasFaultStatus() const {
+  if (_extraCount == 0 || !fresh(_clock(), _extraAt, _cfg.staleMs)) return false;
+  for (uint8_t i = 0; i < _extraCount; i++)
+    if ((_extraVal[i] & ~0x0FC0u) == 0) return true;
+  return false;
+}
+uint8_t RAK9154Battery::getFaultBits() const {
+  if (!hasFaultStatus()) return 0;
+  for (uint8_t i = 0; i < _extraCount; i++)
+    if ((_extraVal[i] & ~0x0FC0u) == 0) return (uint8_t)(_extraVal[i] >> 6);
+  return 0;
+}
 bool    RAK9154Battery::isCharging() const { return hasCurrent() && _current_mA > CHARGING_MIN_mA; }
 
 RAK9154Telemetry RAK9154Battery::snapshot() const {

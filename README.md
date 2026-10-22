@@ -115,9 +115,15 @@ What you see in the MeshCore app's **Telemetry** screen for the repeater:
 | 1 | **Charge current** | RAK9154 (charging only, see limitations) |
 | 1 | Chip temperature | nRF52 MCU, unchanged MeshCore behaviour, *not* the battery |
 | next free channel (normally 2) | **Battery temperature** | RAK9154 |
+| same channel as the battery temperature | **Battery fault byte** (shown as a "digital input" number; **0 = no faults**) | RAK9154 `0xF3` fault word |
+
+Fault byte bits (add them up to read the number the app shows): 1 = over-voltage, 2 = charge over-current,
+4 = charge low-temperature, 8 = charge high-temperature, 16 = charge short-circuit, 32 = charge over-current lock.
+For example `9` means over-voltage plus charge high-temperature. Only the "no faults" value has been seen on real
+hardware so far; the bit order follows RAK's documentation.
 
 Also available on the repeater's admin console: a `rak9154` command with live status and diagnostics (below), and a
-decoder for the probe's battery fault flags and firmware version (visible in the console, not yet published over the mesh).
+decoder for the probe's battery fault flags and firmware version (both visible in the console; the fault flags are also published as the fault byte above, the firmware version stays console-only).
 
 If the probe is disconnected or silent, the repeater **falls back to the stock battery reading** and never blocks or
 hangs; stale data (older than 5 minutes) is dropped rather than shown.

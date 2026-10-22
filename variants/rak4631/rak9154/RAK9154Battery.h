@@ -131,6 +131,8 @@ public:
   uint8_t  getStateOfCharge() const;
   bool     hasTemperature() const;
   float    getTemperatureC() const;
+  bool     hasFaultStatus() const;              // a fresh 0xF3 word that is a fault word (0 or only bits 6..11)
+  uint8_t  getFaultBits() const;                // bits 6..11 shifted down: bit0 OV, 1 CHG-OC, 2 CHG-LT, 3 CHG-HT, 4 CHG-SC, 5 CHG-OC-LOCK
   uint32_t getLastUpdateMillis() const { return _voltageAt; }
   bool     isCharging() const;                  // fresh current above a small threshold
 
