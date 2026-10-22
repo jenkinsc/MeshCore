@@ -110,7 +110,7 @@ What you see in the MeshCore app's **Telemetry** screen for the repeater:
 
 | Telemetry channel | Value | Source |
 |---|---|---|
-| 1 | Battery **voltage** | RAK9154 (this is MeshCore's own battery field, now fed by the probe). The percentage the app shows next to it is the *app's* estimate from the voltage |
+| 1 | Battery **voltage** | RAK9154 (this is MeshCore's own battery field, now fed by the probe). The percentage the app shows next to it is the *app's* own guess from the voltage and can be wrong for this battery (for example 100 % at 10.49 V while the real state of charge was 34 %); use the **Percentage** row, which is the probe's own state of charge |
 | 1 | **State of charge** (%) | RAK9154 |
 | 1 | **Charge current** | RAK9154 (charging only, see limitations) |
 | 1 | Chip temperature | nRF52 MCU, unchanged MeshCore behaviour, *not* the battery |
@@ -146,7 +146,9 @@ Not verified yet:
 - The **sign of the current** (which direction is "charging") is assumed, not confirmed.
 - A non-zero fault word (only the "no faults" case has been seen) and publishing the fault/firmware words in telemetry.
 - Long-term stability (days) and behaviour with other RAK9154/probe firmware versions.
-- Only one hardware unit has been tested. Reports from other setups are very welcome.
+- Two RAK9154 batteries have been tested, both on the same repeater (the second one worked with no changes and showed
+  charging at 10.49 V, 34 % SOC, +58 mA, no faults). Other RAK4631 boards and probe firmware versions have not been tried.
+  Reports from other setups are very welcome.
 
 ### How it works
 
