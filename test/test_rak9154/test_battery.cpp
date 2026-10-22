@@ -169,6 +169,26 @@ TEST(Battery, ProbeThatNeverAcceptsProvisioningDoesNotCauseATightLoop) {
   // and the first attempts still happen quickly so a probe that needs two tries is not slowed down
 }
 
+TEST(Battery, RepeatedAnnouncementsAreNotAnsweredWhileDataIsFresh) {
+  Rig r;
+  bringUp(r);                                          // announcement answered once, data flowing
+  const uint32_t provBefore = r.b.stats().provisions;
+  for (int i = 0; i < 5; i++) {                        // probe re-announces every ~8 s, as seen on hardware
+    r.t.inject(provisionAnnouncement({{0, IPSO_VOLT}, {0, IPSO_CUR}, {0, IPSO_SOC}}));
+    r.run(8000);
+    r.t.inject(typicalResponse(false, 1231, 185, 94)); // data keeps arriving so telemetry stays fresh
+    r.run(100);
+  }
+  EXPECT_EQ(r.b.stats().provisions, provBefore) << "no ~130 ms transmits while data flows";
+  EXPECT_GE(r.b.stats().provSkipped, 4u);
+  EXPECT_TRUE(r.b.hasValidTelemetry());
+  r.t.inject(provisionAnnouncement({{0, IPSO_VOLT}, {0, IPSO_CUR}, {0, IPSO_SOC}}));
+  r.run(30000);                                        // past the 60 s quiet window: answered again
+  r.t.inject(provisionAnnouncement({{0, IPSO_VOLT}, {0, IPSO_CUR}, {0, IPSO_SOC}}));
+  r.run(100);
+  EXPECT_GT(r.b.stats().provisions, provBefore);
+}
+
 TEST(Battery, SilenceNeverBlocksOrLoopsForever) {
   Rig r;
   r.b.begin();

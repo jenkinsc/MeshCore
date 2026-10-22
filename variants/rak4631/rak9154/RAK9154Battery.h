@@ -90,6 +90,7 @@ struct Stats {
   uint32_t rangeRejects     = 0;   // decoded but implausible values (often a wrong byte order)
   uint32_t provisions       = 0;   // probe announcements answered
   uint32_t otherFrames      = 0;   // valid frames of a kind we do not use
+  uint32_t provSkipped      = 0;   // announcements deliberately not answered because data was already flowing
   uint32_t rxFrames         = 0;   // candidate frames delivered by the assembler (valid or not)
   uint32_t rxBytes          = 0;   // raw bytes read from the transport
   uint32_t maxTxMs          = 0;   // longest transmit, i.e. longest time loop() was blocked by this driver
@@ -179,6 +180,8 @@ private:
   uint32_t _lastForced = 0;
   bool     _haveForced = false;
   uint8_t  _consecFail = 0;
+  bool     _haveAnswered = false;
+  uint32_t _lastProvAnswer = 0;
   uint16_t _provStreak = 0;        // provision announcements answered since the last good data frame (back-off input)
   bool     _everGood = false;
 

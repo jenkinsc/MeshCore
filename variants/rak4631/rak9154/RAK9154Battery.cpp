@@ -15,6 +15,7 @@ namespace {
 constexpr uint32_t MIN_POLL_MS        = 15000;
 constexpr uint32_t MAX_POLL_MS        = 60000;
 constexpr uint32_t FORCE_MIN_GAP_MS   = 1000;
+constexpr uint32_t PROV_QUIET_MS      = 60000;   // while data is fresh, answer a repeated announcement at most this often
 constexpr uint32_t POST_PROVISION_MS  = 300;     // ask for data shortly after answering a provision announcement
 constexpr size_t   MAX_RX_PER_LOOP    = 256;     // bound on work done per loop() iteration
 constexpr int32_t  CHARGING_MIN_mA    = 20;      // below this we do not claim "charging" (noise floor guess)
@@ -152,13 +153,21 @@ void RAK9154Battery::handleCandidate(const uint8_t* data, size_t len, uint32_t n
   RAK9154_LOG("checksum OK");
 
   if (f.flag == FLAG_REQ && f.hubType == HUB_PROVISION && f.payloadType == PROV_VER3) {
+    // Real probes keep announcing themselves every few seconds even while they deliver data. Each answer is a ~130 ms
+    // blocking transmit, so once data flows only answer occasionally.
+    if (_haveAnswered && hasValidTelemetry() && (uint32_t)(now - _lastProvAnswer) < PROV_QUIET_MS) {
+      _stats.provSkipped++;
+      return;
+    }
     ProvisionInfo info;
     uint8_t out[MAX_TX_FRAME];
     size_t n = decodeProvision(f, info) ? buildProvisionResponse(data, len, PID_ASSIGNED, out, sizeof(out)) : 0;
     if (n == 0) { _stats.invalidFrames++; return; }
     _prov = info;
     _haveProv = true;
-    transmit(out, n);                 // one-time ~85 ms transmit, see header comment
+    transmit(out, n);                 // ~85-130 ms transmit, see header comment
+    _haveAnswered = true;
+    _lastProvAnswer = _clock();
     _pid = PID_ASSIGNED;
     _state = ST_POLLING;
     _awaiting = false;
@@ -297,8 +306,8 @@ size_t RAK9154Battery::formatExtra(char* out, size_t cap) const {
 size_t RAK9154Battery::formatDiag(char* out, size_t cap) const {
   if (cap == 0) return 0;
   Out o(out, cap);
-  o.add("RAK9154 req:%u prov:%u rxfr:%u rxb:%u asm:%u uart:%u to:%u/%u st:%s pid:%u wait:%u gap:%u pstreak:%u",
-        (unsigned)_stats.requestsSent, (unsigned)_stats.provisions, (unsigned)_stats.rxFrames,
+  o.add("RAK9154 req:%u prov:%u skip:%u rxfr:%u rxb:%u asm:%u uart:%u to:%u/%u st:%s pid:%u wait:%u gap:%u pstreak:%u",
+        (unsigned)_stats.requestsSent, (unsigned)_stats.provisions, (unsigned)_stats.provSkipped, (unsigned)_stats.rxFrames,
         (unsigned)_stats.rxBytes, (unsigned)_stats.framingErrors, (unsigned)_t.rxErrors(),
         (unsigned)_consecFail, (unsigned)_cfg.reprovisionAfter, _state == ST_POLLING ? "POLL" : "PROV",
         (unsigned)_pid, (unsigned)_awaiting, (unsigned)_t.txGapBits(), (unsigned)_provStreak);

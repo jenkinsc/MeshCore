@@ -38,7 +38,7 @@
 // releases the line and waits at least one extra bit between bytes (~12 bit times per byte), which a small probe MCU
 // may need to store each byte; back-to-back bytes (0) are also valid UART. Adjustable at runtime: "rak9154 gap <n>".
 #ifndef RAK9154_TX_GAP_BITS
-#define RAK9154_TX_GAP_BITS 2
+#define RAK9154_TX_GAP_BITS 4      // 4 is what worked on real hardware (2 and 0 were not confirmed to)
 #endif
 
 // CPU cycles between the falling edge on the pin and the moment the ISR body starts running (interrupt entry +
